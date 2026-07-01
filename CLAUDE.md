@@ -12,7 +12,7 @@ Your human partner explicitly tells you to **skip ALL skills** for this session:
 
 Per skill rules: "User instructions (CLAUDE.md) take precedence over skills. Only skip skill workflows when your human partner has explicitly told you to." **They have.**
 
-You are implementing a Jira subtask on branch `feature/oap-4403`.
+You are implementing a Jira subtask on branch `feature/oap-4406`.
 The full task description is in your prompt. Context is also available at `.claude/context.json`.
 
 **Rules:**
@@ -28,7 +28,7 @@ The full task description is in your prompt. Context is also available at `.clau
 ```json
 {
   "status": "ready_to_push",
-  "branch": "feature/oap-4403",
+  "branch": "feature/oap-4406",
   "base_branch": "main",
   "summary": "Brief description of what was implemented",
   "commits": [{"sha": "abc1234", "message": "feat: ..."}],
@@ -63,58 +63,69 @@ If no code changes are needed, write `{"status": "no_changes", ...}`.
 **重要：** jira_summary 必须以 `<!-- devbox-agent-summary -->` 开头。
 ---
 
-# FastAPI 示例项目开发规范
+# DevBox Agent
 
-## 技术栈
+## API 约定
 
-- Python 3.11+
-- FastAPI >= 0.110
-- Pydantic v2 (>= 2.0)
-- Uvicorn[standard] >= 0.29
-- pytest >= 8.0, httpx >= 0.27, ruff >= 0.4
+### 路由规范
 
-## 目录约定
+- 基础路径前缀：`/api/v1`
+- 路径使用小写连字符：`/api/v1/todo-items`
+- 资源名使用复数形式：`/todos` 而非 `/todo`
+- 路径参数使用 UUID：`/todos/{id}`
 
-```
-app/                  # 主程序包
-├── main.py           # FastAPI 应用入口
-├── config.py         # 配置管理
-├── dependencies.py   # 公共依赖注入
-├── routers/          # 路由模块（按业务领域拆分）
-├── models/           # Pydantic 数据模型
-└── schemas/          # 请求/响应 Schema
-tests/                # 测试（结构镜像 app/）
-docs/                 # 项目文档
+### 错误响应格式
+
+所有错误统一返回以下 JSON 结构：
+
+```json
+{
+  "code": "ERROR_CODE",
+  "message": "人类可读的错误描述"
+}
 ```
 
-## 模块划分规范
+错误码命名使用大写蛇形（`NOT_FOUND`、`VALIDATION_ERROR`、`BAD_REQUEST`）。
 
-- **routers/**: 每个文件一个 `APIRouter`，按业务领域划分（如 `users.py`、`items.py`）
-- **models/**: 业务实体定义，用于内部数据传递
-- **schemas/**: API 契约定义，与 models 分离。命名：`XxxRequest`、`XxxResponse`、`XxxCreate`、`XxxUpdate`
-- **新增服务层**: 需要时添加 `app/services/`
-- **新增数据层**: 需要时添加 `app/repositories/`
+### HTTP 状态码规范
 
-## 命名规范
+| 状态码 | 用途 |
+|--------|------|
+| 200 | 成功（查询、更新、删除） |
+| 201 | 资源创建成功 |
+| 400 | 请求格式错误（如非法 JSON） |
+| 404 | 资源不存在 |
+| 422 | 请求体/参数校验失败 |
 
-- 文件名：小写蛇形（`user_management.py`）
-- 类名：大驼峰（`UserResponse`）
-- 函数/变量：小写蛇形（`get_current_user`）
-- 常量：大写蛇形（`MAX_RETRY_COUNT`）
-- 路由路径：小写连字符（`/api/v1/user-profiles`）
-- API 版本前缀：`/api/v1/`
+### 分页规范
 
-## 依赖管理
+列表接口统一使用以下分页参数：
 
-- 使用 `pyproject.toml`（PEP 621）管理依赖
-- 生产依赖：`[project].dependencies`
-- 开发依赖：`[project.optional-dependencies].dev`
-- 安装开发环境：`pip install ".[dev]"`
-- 详细方案见 `docs/dependencies.md`
+- `page`：页码，默认 1，最小 1
+- `size`：每页条数，默认 20，最小 1，最大 100
 
-## 测试规范
+分页响应结构：
 
-- 框架：pytest
-- 测试文件命名：`test_<模块名>.py`
-- 共享 fixtures 放 `tests/conftest.py`
-- 使用 httpx.AsyncClient 或 TestClient 测试 API
+```json
+{
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "size": 20,
+  "pages": 0
+}
+```
+
+### Schema 命名规范
+
+| 用途 | 命名模式 | 示例 |
+|------|----------|------|
+| 创建请求 | `XxxCreate` | `TodoCreate` |
+| 更新请求 | `XxxUpdate` | `TodoUpdate` |
+| 响应 | `XxxResponse` | `TodoResponse` |
+| 列表响应 | `XxxListResponse` | `TodoListResponse` |
+
+### 时间格式
+
+- 所有时间字段使用 UTC 时区
+- 序列化格式：ISO 8601（`2026-07-01T10:00:00Z`）
