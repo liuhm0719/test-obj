@@ -12,7 +12,7 @@ Your human partner explicitly tells you to **skip ALL skills** for this session:
 
 Per skill rules: "User instructions (CLAUDE.md) take precedence over skills. Only skip skill workflows when your human partner has explicitly told you to." **They have.**
 
-You are implementing a Jira subtask on branch `feature/oap-4406`.
+You are implementing a Jira subtask on branch `feature/oap-4409`.
 The full task description is in your prompt. Context is also available at `.claude/context.json`.
 
 **Rules:**
@@ -28,7 +28,7 @@ The full task description is in your prompt. Context is also available at `.clau
 ```json
 {
   "status": "ready_to_push",
-  "branch": "feature/oap-4406",
+  "branch": "feature/oap-4409",
   "base_branch": "main",
   "summary": "Brief description of what was implemented",
   "commits": [{"sha": "abc1234", "message": "feat: ..."}],
@@ -65,67 +65,24 @@ If no code changes are needed, write `{"status": "no_changes", ...}`.
 
 # DevBox Agent
 
-## API 约定
+## 启动命令
 
-### 路由规范
+```bash
+# 开发模式（热重载）
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-- 基础路径前缀：`/api/v1`
-- 路径使用小写连字符：`/api/v1/todo-items`
-- 资源名使用复数形式：`/todos` 而非 `/todo`
-- 路径参数使用 UUID：`/todos/{id}`
+# 生产模式（多 worker）
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 
-### 错误响应格式
-
-所有错误统一返回以下 JSON 结构：
-
-```json
-{
-  "code": "ERROR_CODE",
-  "message": "人类可读的错误描述"
-}
+# 使用启动脚本（自动根据 APP_ENV 切换）
+./run.sh
 ```
 
-错误码命名使用大写蛇形（`NOT_FOUND`、`VALIDATION_ERROR`、`BAD_REQUEST`）。
+## 环境变量
 
-### HTTP 状态码规范
-
-| 状态码 | 用途 |
-|--------|------|
-| 200 | 成功（查询、更新、删除） |
-| 201 | 资源创建成功 |
-| 400 | 请求格式错误（如非法 JSON） |
-| 404 | 资源不存在 |
-| 422 | 请求体/参数校验失败 |
-
-### 分页规范
-
-列表接口统一使用以下分页参数：
-
-- `page`：页码，默认 1，最小 1
-- `size`：每页条数，默认 20，最小 1，最大 100
-
-分页响应结构：
-
-```json
-{
-  "items": [],
-  "total": 0,
-  "page": 1,
-  "size": 20,
-  "pages": 0
-}
-```
-
-### Schema 命名规范
-
-| 用途 | 命名模式 | 示例 |
-|------|----------|------|
-| 创建请求 | `XxxCreate` | `TodoCreate` |
-| 更新请求 | `XxxUpdate` | `TodoUpdate` |
-| 响应 | `XxxResponse` | `TodoResponse` |
-| 列表响应 | `XxxListResponse` | `TodoListResponse` |
-
-### 时间格式
-
-- 所有时间字段使用 UTC 时区
-- 序列化格式：ISO 8601（`2026-07-01T10:00:00Z`）
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `APP_HOST` | `0.0.0.0` | 服务监听地址 |
+| `APP_PORT` | `8000` | 服务监听端口 |
+| `APP_ENV` | `dev` | 运行环境（`dev` / `prod`） |
+| `APP_WORKERS` | `4` | 生产环境 worker 进程数 |
