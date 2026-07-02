@@ -1,12 +1,14 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 
 from app.routers.todos import router as todos_router
+from app.routers.users import router as users_router
 
 app = FastAPI(title="FastAPI Example", version="0.1.0")
 
 app.include_router(todos_router, prefix="/api/v1")
+app.include_router(users_router, prefix="/api/v1")
 
 
 @app.exception_handler(HTTPException)
