@@ -15,18 +15,33 @@ project-root/
 │   ├── dependencies.py     # 公共依赖注入（数据库会话、认证等）
 │   ├── routers/            # 路由模块
 │   │   ├── __init__.py
-│   │   └── health.py      # 示例：健康检查路由
+│   │   ├── health.py      # 健康检查路由
+│   │   ├── todos.py       # Todo CRUD 路由端点
+│   │   └── users.py       # User CRUD 路由端点
 │   ├── models/             # Pydantic 数据模型（业务实体）
-│   │   └── __init__.py
+│   │   ├── __init__.py
+│   │   ├── todo.py        # Todo 实体模型与内存存储
+│   │   └── user.py        # User 实体模型与内存存储（int 自增 ID）
 │   └── schemas/            # 请求/响应 Schema 定义
-│       └── __init__.py
+│       ├── __init__.py
+│       ├── common.py      # 通用 Schema（ErrorResponse、PaginationParams）
+│       ├── todo.py        # Todo 请求/响应 Schema
+│       └── user.py        # User 请求/响应 Schema（含 EmailStr 校验）
 ├── tests/                  # 测试目录
 │   ├── __init__.py
 │   ├── conftest.py         # pytest fixtures（TestClient 等）
-│   └── test_health.py     # 示例测试
+│   ├── test_health.py     # 健康检查测试
+│   ├── test_startup.py    # 项目环境验证测试
+│   ├── test_startup_script.py # 服务启动脚本验证测试
+│   ├── test_todos.py      # Todo CRUD API 测试
+│   └── test_users.py      # User CRUD API 测试（22 个用例）
 ├── docs/                   # 项目文档
-│   ├── project-structure.md
-│   └── dependencies.md
+│   ├── api-design.md      # API 接口设计文档
+│   ├── data-models.md     # 数据模型设计文档
+│   ├── dependencies.md    # 依赖管理方案
+│   ├── deployment.md      # 部署配置方案
+│   ├── delivery-report.md # 项目交付报告
+│   └── project-structure.md # 项目目录结构（本文件）
 ├── pyproject.toml          # 项目元数据与依赖管理
 ├── CLAUDE.md               # 开发规范与约定
 └── README.md               # 项目说明

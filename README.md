@@ -1,6 +1,6 @@
 # FastAPI Example Project
 
-基于 FastAPI 构建的示例 RESTful API 项目，包含 Todo CRUD 接口。
+基于 FastAPI 构建的示例 RESTful API 项目，包含 Todo 和 User CRUD 接口。
 
 ## 环境要求
 
@@ -57,6 +57,34 @@ APP_ENV=prod APP_PORT=9000 APP_WORKERS=8 ./run.sh
 | `APP_WORKERS` | `4` | 生产环境 worker 进程数 |
 
 参考 `.env.example` 了解所有可配置项。
+
+## API 端点
+
+### 通用
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/health` | 健康检查 |
+
+### Todo 资源
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | `/api/v1/todos` | 创建 Todo |
+| GET | `/api/v1/todos` | Todo 列表（分页） |
+| GET | `/api/v1/todos/{todo_id}` | 获取单个 Todo |
+| PUT | `/api/v1/todos/{todo_id}` | 更新 Todo |
+| DELETE | `/api/v1/todos/{todo_id}` | 删除 Todo |
+
+### User 资源
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | `/api/v1/users` | 创建用户（username/email 唯一） |
+| GET | `/api/v1/users` | 用户列表（分页） |
+| GET | `/api/v1/users/{user_id}` | 获取单个用户 |
+| PUT | `/api/v1/users/{user_id}` | 更新用户（部分更新） |
+| DELETE | `/api/v1/users/{user_id}` | 删除用户 |
 
 ## API 文档
 
