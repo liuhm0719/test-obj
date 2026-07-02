@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档定义 Todo 资源的 RESTful API 接口，供开发任务（OAP-4407）直接实现。
+本文档定义项目中各资源的 RESTful API 接口，供开发任务直接实现。
 
 - 基础路径：`/api/v1`
 - 内容类型：`application/json`
@@ -230,3 +230,211 @@
 - `page` >= 1，默认 1
 - `size` >= 1 且 <= 100，默认 20
 - 超出范围的页码返回空 items 列表（不报错）
+
+---
+
+## User 资源
+
+### 端点列表
+
+| 方法 | 路径 | 描述 | 状态码 |
+|------|------|------|--------|
+| POST | `/api/v1/users` | 创建用户 | 201 |
+| GET | `/api/v1/users` | 获取用户列表（分页） | 200 |
+| GET | `/api/v1/users/{user_id}` | 获取单个用户 | 200 / 404 |
+| PUT | `/api/v1/users/{user_id}` | 更新用户（部分更新） | 200 / 404 |
+| DELETE | `/api/v1/users/{user_id}` | 删除用户 | 204 / 404 |
+
+---
+
+### 端点详细定义
+
+#### 1. POST /api/v1/users
+
+创建新用户。
+
+**请求体：**
+
+```json
+{
+  "username": "john_doe",
+  "email": "john@example.com"
+}
+```
+
+| 字段 | 类型 | 必填 | 约束 | 说明 |
+|------|------|------|------|------|
+| username | string | 是 | 3-32 字符，唯一 | 用户名 |
+| email | string | 是 | 合法邮箱格式，唯一 | 邮箱地址 |
+
+**成功响应：** `201 Created`
+
+```json
+{
+  "id": 1,
+  "username": "john_doe",
+  "email": "john@example.com",
+  "is_active": true,
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T10:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `400 Bad Request` — username 已存在：`{"code": "USER_EXISTS", "message": "Username already exists"}`
+- `400 Bad Request` — email 已存在：`{"code": "EMAIL_EXISTS", "message": "Email already exists"}`
+- `422 Unprocessable Entity` — 请求体校验失败（如 username 长度不符、email 格式非法）
+
+---
+
+#### 2. GET /api/v1/users
+
+获取用户列表，支持分页。
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 默认值 | 约束 | 说明 |
+|------|------|------|--------|------|------|
+| page | int | 否 | 1 | >= 1 | 页码 |
+| size | int | 否 | 20 | 1-100 | 每页条数 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "username": "john_doe",
+      "email": "john@example.com",
+      "is_active": true,
+      "created_at": "2026-07-01T10:00:00Z",
+      "updated_at": "2026-07-01T10:00:00Z"
+    }
+  ],
+  "total": 5,
+  "page": 1,
+  "size": 20,
+  "pages": 1
+}
+```
+
+**错误响应：**
+
+- `422 Unprocessable Entity` — 参数校验失败（如 page < 1 或 size > 100）
+
+---
+
+#### 3. GET /api/v1/users/{user_id}
+
+获取单个用户详情。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| user_id | int | 用户的唯一标识符 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "id": 1,
+  "username": "john_doe",
+  "email": "john@example.com",
+  "is_active": true,
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T10:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `404 Not Found` — 用户不存在：`{"code": "NOT_FOUND", "message": "User not found"}`
+
+---
+
+#### 4. PUT /api/v1/users/{user_id}
+
+更新已有用户，支持部分更新（仅传入需要修改的字段）。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| user_id | int | 用户的唯一标识符 |
+
+**请求体：**
+
+```json
+{
+  "username": "john_updated",
+  "email": "john_new@example.com",
+  "is_active": false
+}
+```
+
+| 字段 | 类型 | 必填 | 约束 | 说明 |
+|------|------|------|------|------|
+| username | string | 否 | 3-32 字符，唯一 | 用户名 |
+| email | string | 否 | 合法邮箱格式，唯一 | 邮箱地址 |
+| is_active | bool | 否 | — | 是否激活 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "id": 1,
+  "username": "john_updated",
+  "email": "john_new@example.com",
+  "is_active": false,
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T12:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `404 Not Found` — 用户不存在：`{"code": "NOT_FOUND", "message": "User not found"}`
+- `400 Bad Request` — username 已存在：`{"code": "USER_EXISTS", "message": "Username already exists"}`
+- `400 Bad Request` — email 已存在：`{"code": "EMAIL_EXISTS", "message": "Email already exists"}`
+- `422 Unprocessable Entity` — 请求体校验失败
+
+---
+
+#### 5. DELETE /api/v1/users/{user_id}
+
+删除指定用户。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| user_id | int | 用户的唯一标识符 |
+
+**成功响应：** `204 No Content`
+
+无响应体。
+
+**错误响应：**
+
+- `404 Not Found` — 用户不存在：`{"code": "NOT_FOUND", "message": "User not found"}`
+
+---
+
+### User 业务规则
+
+| 规则 | 错误码 | HTTP 状态码 | 说明 |
+|------|--------|-------------|------|
+| username 唯一 | `USER_EXISTS` | 400 | 创建或更新时 username 已被其他用户占用 |
+| email 唯一 | `EMAIL_EXISTS` | 400 | 创建或更新时 email 已被其他用户占用 |
+
+### User 错误码汇总
+
+| 错误码 | HTTP 状态码 | 说明 |
+|--------|-------------|------|
+| `NOT_FOUND` | 404 | 用户不存在 |
+| `USER_EXISTS` | 400 | username 已被占用 |
+| `EMAIL_EXISTS` | 400 | email 已被占用 |
+| `VALIDATION_ERROR` | 422 | 请求参数或请求体校验失败 |

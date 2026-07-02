@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档定义 Todo 资源相关的 Pydantic v2 数据模型，供开发任务（OAP-4407）直接实现。
+本文档定义项目中各资源的 Pydantic v2 数据模型，供开发任务直接实现。
 
 所有模型使用 Pydantic v2 语法，配合 `model_config` 而非已废弃的 `Config` 内部类。
 
@@ -16,6 +16,10 @@
 | `TodoUpdate` | 更新请求体 | `app/schemas/todo.py` |
 | `TodoResponse` | 单个 Todo 响应 | `app/schemas/todo.py` |
 | `TodoListResponse` | Todo 列表分页响应 | `app/schemas/todo.py` |
+| `UserCreate` | 创建用户请求体 | `app/schemas/user.py` |
+| `UserUpdate` | 更新用户请求体（部分更新） | `app/schemas/user.py` |
+| `UserResponse` | 单个用户响应 | `app/schemas/user.py` |
+| `UserListResponse` | 用户列表分页响应 | `app/schemas/user.py` |
 | `ErrorResponse` | 统一错误响应 | `app/schemas/common.py` |
 | `PaginationParams` | 分页查询参数 | `app/schemas/common.py` |
 
@@ -218,13 +222,186 @@ class PaginationParams:
 
 ---
 
+---
+
+## User 模型定义
+
+### UserCreate
+
+创建用户的请求体。
+
+```python
+from pydantic import BaseModel, Field, EmailStr
+
+
+class UserCreate(BaseModel):
+    username: str = Field(
+        ...,
+        min_length=3,
+        max_length=32,
+        examples=["john_doe"],
+        description="用户名，唯一",
+    )
+    email: EmailStr = Field(
+        ...,
+        examples=["john@example.com"],
+        description="邮箱地址，唯一，合法邮箱格式",
+    )
+```
+
+| 字段 | 类型 | 必填 | 约束 | 默认值 | 示例 |
+|------|------|------|------|--------|------|
+| username | str | 是 | 3-32 字符，唯一 | — | `"john_doe"` |
+| email | EmailStr | 是 | 合法邮箱格式，唯一 | — | `"john@example.com"` |
+
+---
+
+### UserUpdate
+
+更新用户的请求体（部分更新，所有字段可选）。
+
+```python
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = Field(
+        None,
+        min_length=3,
+        max_length=32,
+        examples=["john_updated"],
+        description="用户名，唯一",
+    )
+    email: Optional[EmailStr] = Field(
+        None,
+        examples=["john_new@example.com"],
+        description="邮箱地址，唯一，合法邮箱格式",
+    )
+    is_active: Optional[bool] = Field(
+        None,
+        examples=[False],
+        description="是否激活",
+    )
+```
+
+| 字段 | 类型 | 必填 | 约束 | 默认值 | 示例 |
+|------|------|------|------|--------|------|
+| username | str \| None | 否 | 3-32 字符，唯一 | None | `"john_updated"` |
+| email | EmailStr \| None | 否 | 合法邮箱格式，唯一 | None | `"john_new@example.com"` |
+| is_active | bool \| None | 否 | — | None | `false` |
+
+---
+
+### UserResponse
+
+单个用户的响应体。
+
+```python
+from datetime import datetime
+from pydantic import BaseModel, Field, EmailStr
+
+
+class UserResponse(BaseModel):
+    id: int = Field(
+        ...,
+        examples=[1],
+        description="用户 ID，自增主键",
+    )
+    username: str = Field(
+        ...,
+        examples=["john_doe"],
+        description="用户名",
+    )
+    email: EmailStr = Field(
+        ...,
+        examples=["john@example.com"],
+        description="邮箱地址",
+    )
+    is_active: bool = Field(
+        ...,
+        examples=[True],
+        description="是否激活",
+    )
+    created_at: datetime = Field(
+        ...,
+        examples=["2026-07-01T10:00:00Z"],
+        description="创建时间（UTC）",
+    )
+    updated_at: datetime = Field(
+        ...,
+        examples=["2026-07-01T10:00:00Z"],
+        description="更新时间（UTC）",
+    )
+
+    model_config = {"from_attributes": True}
+```
+
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| id | int | 自增主键 | `1` |
+| username | str | 用户名 | `"john_doe"` |
+| email | EmailStr | 邮箱地址 | `"john@example.com"` |
+| is_active | bool | 是否激活 | `true` |
+| created_at | datetime | 创建时间（UTC，ISO 8601） | `"2026-07-01T10:00:00Z"` |
+| updated_at | datetime | 更新时间（UTC，ISO 8601） | `"2026-07-01T10:00:00Z"` |
+
+---
+
+### UserListResponse
+
+用户列表分页响应。
+
+```python
+class UserListResponse(BaseModel):
+    items: list[UserResponse] = Field(
+        ...,
+        description="当前页的用户列表",
+    )
+    total: int = Field(
+        ...,
+        ge=0,
+        examples=[5],
+        description="总记录数",
+    )
+    page: int = Field(
+        ...,
+        ge=1,
+        examples=[1],
+        description="当前页码",
+    )
+    size: int = Field(
+        ...,
+        ge=1,
+        examples=[20],
+        description="每页条数",
+    )
+    pages: int = Field(
+        ...,
+        ge=0,
+        examples=[1],
+        description="总页数",
+    )
+```
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| items | list[UserResponse] | — | 当前页的用户列表 |
+| total | int | >= 0 | 总记录数 |
+| page | int | >= 1 | 当前页码 |
+| size | int | >= 1 | 每页条数 |
+| pages | int | >= 0 | 总页数 |
+
+---
+
 ## 文件组织
 
 ```
 app/schemas/
 ├── __init__.py       # 导出所有 Schema
 ├── common.py         # ErrorResponse, PaginationParams
-└── todo.py           # TodoCreate, TodoUpdate, TodoResponse, TodoListResponse
+├── todo.py           # TodoCreate, TodoUpdate, TodoResponse, TodoListResponse
+└── user.py           # UserCreate, UserUpdate, UserResponse, UserListResponse
 ```
 
 ### `app/schemas/__init__.py`
@@ -232,6 +409,7 @@ app/schemas/
 ```python
 from app.schemas.common import ErrorResponse, PaginationParams
 from app.schemas.todo import TodoCreate, TodoUpdate, TodoResponse, TodoListResponse
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
 
 __all__ = [
     "ErrorResponse",
@@ -240,5 +418,9 @@ __all__ = [
     "TodoUpdate",
     "TodoResponse",
     "TodoListResponse",
+    "UserCreate",
+    "UserUpdate",
+    "UserResponse",
+    "UserListResponse",
 ]
 ```
