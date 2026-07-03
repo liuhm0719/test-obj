@@ -73,6 +73,39 @@ class TestCreateUser:
         assert resp.status_code == 400
         assert resp.json()["code"] == "EMAIL_EXISTS"
 
+    def test_create_user_with_phone(self, client):
+        resp = client.post(
+            BASE_URL,
+            json={"username": "phoneuser", "email": "p@test.com", "phone": "+8613800138000"},
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["phone"] == "+8613800138000"
+
+    def test_create_user_without_phone(self, client):
+        resp = _create_user(client)
+        assert resp.status_code == 201
+        assert resp.json()["phone"] is None
+
+    def test_create_user_invalid_phone(self, client):
+        resp = client.post(
+            BASE_URL,
+            json={"username": "phoneuser", "email": "p@test.com", "phone": "abc"},
+        )
+        assert resp.status_code == 422
+
+    def test_create_user_duplicate_phone(self, client):
+        client.post(
+            BASE_URL,
+            json={"username": "user1", "email": "u1@test.com", "phone": "+8613800138000"},
+        )
+        resp = client.post(
+            BASE_URL,
+            json={"username": "user2", "email": "u2@test.com", "phone": "+8613800138000"},
+        )
+        assert resp.status_code == 400
+        assert resp.json()["code"] == "PHONE_EXISTS"
+
 
 # =========================================================================
 # GET /api/users - List Users
@@ -217,6 +250,30 @@ class TestUpdateUser:
         resp = client.put(f"{BASE_URL}/{bob_id}", json={"email": "alice@test.com"})
         assert resp.status_code == 400
         assert resp.json()["code"] == "EMAIL_EXISTS"
+
+    def test_update_phone(self, client):
+        create_resp = _create_user(client)
+        user_id = create_resp.json()["id"]
+
+        resp = client.put(
+            f"{BASE_URL}/{user_id}", json={"phone": "+8613900139000"}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["phone"] == "+8613900139000"
+
+    def test_update_phone_conflict(self, client):
+        client.post(
+            BASE_URL,
+            json={"username": "alice", "email": "alice@test.com", "phone": "+8613800138000"},
+        )
+        create_resp = _create_user(client, username="bob", email="bob@test.com")
+        bob_id = create_resp.json()["id"]
+
+        resp = client.put(
+            f"{BASE_URL}/{bob_id}", json={"phone": "+8613800138000"}
+        )
+        assert resp.status_code == 400
+        assert resp.json()["code"] == "PHONE_EXISTS"
 
 
 # =========================================================================

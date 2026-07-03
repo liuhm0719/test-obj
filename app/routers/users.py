@@ -45,6 +45,18 @@ def _check_email_unique(email: str, exclude_id: int | None = None) -> None:
             )
 
 
+def _check_phone_unique(phone: str, exclude_id: int | None = None) -> None:
+    for user in users_db.values():
+        if user.phone == phone and user.id != exclude_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "code": "PHONE_EXISTS",
+                    "message": "Phone already exists",
+                },
+            )
+
+
 @router.post(
     "",
     response_model=UserResponse,
@@ -54,7 +66,9 @@ def _check_email_unique(email: str, exclude_id: int | None = None) -> None:
 async def create_user_endpoint(body: UserCreate):
     _check_username_unique(body.username)
     _check_email_unique(body.email)
-    user = create_user(username=body.username, email=body.email)
+    if body.phone is not None:
+        _check_phone_unique(body.phone)
+    user = create_user(username=body.username, email=body.email, phone=body.phone)
     return UserResponse.model_validate(user)
 
 
@@ -109,10 +123,13 @@ async def update_user_endpoint(user_id: int, body: UserUpdate):
         _check_username_unique(body.username, exclude_id=user_id)
     if body.email is not None:
         _check_email_unique(body.email, exclude_id=user_id)
+    if body.phone is not None:
+        _check_phone_unique(body.phone, exclude_id=user_id)
     updated = update_user(
         user_id,
         username=body.username,
         email=body.email,
+        phone=body.phone,
         is_active=body.is_active,
     )
     return UserResponse.model_validate(updated)

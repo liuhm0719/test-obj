@@ -16,6 +16,12 @@ class UserCreate(BaseModel):
         examples=["john@example.com"],
         description="邮箱地址，唯一，合法邮箱格式",
     )
+    phone: str | None = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{6,14}$",
+        examples=["+8613800138000"],
+        description="电话号码，可选，唯一，支持国际格式",
+    )
 
 
 class UserUpdate(BaseModel):
@@ -30,6 +36,12 @@ class UserUpdate(BaseModel):
         None,
         examples=["john_new@example.com"],
         description="邮箱地址，唯一，合法邮箱格式",
+    )
+    phone: str | None = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{6,14}$",
+        examples=["+8613800138000"],
+        description="电话号码，可选，唯一，支持国际格式",
     )
     is_active: bool | None = Field(
         None,
@@ -53,6 +65,11 @@ class UserResponse(BaseModel):
         ...,
         examples=["john@example.com"],
         description="邮箱地址",
+    )
+    phone: str | None = Field(
+        None,
+        examples=["+8613800138000"],
+        description="电话号码",
     )
     is_active: bool = Field(
         ...,

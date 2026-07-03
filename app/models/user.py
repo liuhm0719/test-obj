@@ -7,6 +7,7 @@ class User(BaseModel):
     id: int
     username: str
     email: str
+    phone: str | None = None
     is_active: bool = True
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
@@ -26,8 +27,8 @@ def _next_id() -> int:
     return _user_id_counter
 
 
-def create_user(username: str, email: str) -> User:
-    user = User(id=_next_id(), username=username, email=email)
+def create_user(username: str, email: str, phone: str | None = None) -> User:
+    user = User(id=_next_id(), username=username, email=email, phone=phone)
     users_db[user.id] = user
     return user
 
@@ -44,6 +45,7 @@ def update_user(
     user_id: int,
     username: str | None = None,
     email: str | None = None,
+    phone: str | None = None,
     is_active: bool | None = None,
 ) -> User | None:
     user = users_db.get(user_id)
@@ -53,6 +55,8 @@ def update_user(
         user.username = username
     if email is not None:
         user.email = email
+    if phone is not None:
+        user.phone = phone
     if is_active is not None:
         user.is_active = is_active
     user.updated_at = datetime.now(timezone.utc)
