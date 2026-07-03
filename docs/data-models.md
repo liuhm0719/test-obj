@@ -247,12 +247,19 @@ class UserCreate(BaseModel):
         examples=["john@example.com"],
         description="邮箱地址，唯一，合法邮箱格式",
     )
+    phone: str | None = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{6,14}$",
+        examples=["+8613800138000"],
+        description="电话号码，可选，唯一",
+    )
 ```
 
 | 字段 | 类型 | 必填 | 约束 | 默认值 | 示例 |
 |------|------|------|------|--------|------|
 | username | str | 是 | 3-32 字符，唯一 | — | `"john_doe"` |
 | email | EmailStr | 是 | 合法邮箱格式，唯一 | — | `"john@example.com"` |
+| phone | str \| None | 否 | 格式匹配 `+?[1-9]\d{6,14}`，唯一 | None | `"+8613800138000"` |
 
 ---
 
@@ -278,6 +285,12 @@ class UserUpdate(BaseModel):
         examples=["john_new@example.com"],
         description="邮箱地址，唯一，合法邮箱格式",
     )
+    phone: Optional[str] = Field(
+        None,
+        pattern=r"^\+?[1-9]\d{6,14}$",
+        examples=["+8613800138000"],
+        description="电话号码，可选，唯一",
+    )
     is_active: Optional[bool] = Field(
         None,
         examples=[False],
@@ -289,6 +302,7 @@ class UserUpdate(BaseModel):
 |------|------|------|------|--------|------|
 | username | str \| None | 否 | 3-32 字符，唯一 | None | `"john_updated"` |
 | email | EmailStr \| None | 否 | 合法邮箱格式，唯一 | None | `"john_new@example.com"` |
+| phone | str \| None | 否 | 格式匹配 `+?[1-9]\d{6,14}`，唯一 | None | `"+8613800138000"` |
 | is_active | bool \| None | 否 | — | None | `false` |
 
 ---
@@ -318,6 +332,11 @@ class UserResponse(BaseModel):
         examples=["john@example.com"],
         description="邮箱地址",
     )
+    phone: str | None = Field(
+        None,
+        examples=["+8613800138000"],
+        description="电话号码",
+    )
     is_active: bool = Field(
         ...,
         examples=[True],
@@ -342,6 +361,7 @@ class UserResponse(BaseModel):
 | id | int | 自增主键 | `1` |
 | username | str | 用户名 | `"john_doe"` |
 | email | EmailStr | 邮箱地址 | `"john@example.com"` |
+| phone | str \| None | 电话号码，可选，格式需匹配 `+?[1-9]\d{6,14}`，唯一 | `"+8613800138000"` |
 | is_active | bool | 是否激活 | `true` |
 | created_at | datetime | 创建时间（UTC，ISO 8601） | `"2026-07-01T10:00:00Z"` |
 | updated_at | datetime | 更新时间（UTC，ISO 8601） | `"2026-07-01T10:00:00Z"` |

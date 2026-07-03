@@ -258,7 +258,8 @@
 ```json
 {
   "username": "john_doe",
-  "email": "john@example.com"
+  "email": "john@example.com",
+  "phone": "+8613800138000"
 }
 ```
 
@@ -266,6 +267,7 @@
 |------|------|------|------|------|
 | username | string | 是 | 3-32 字符，唯一 | 用户名 |
 | email | string | 是 | 合法邮箱格式，唯一 | 邮箱地址 |
+| phone | string | 否 | 格式匹配 `+?[1-9]\d{6,14}`，唯一 | 电话号码 |
 
 **成功响应：** `201 Created`
 
@@ -274,6 +276,7 @@
   "id": 1,
   "username": "john_doe",
   "email": "john@example.com",
+  "phone": "+8613800138000",
   "is_active": true,
   "created_at": "2026-07-01T10:00:00Z",
   "updated_at": "2026-07-01T10:00:00Z"
@@ -284,7 +287,8 @@
 
 - `400 Bad Request` — username 已存在：`{"code": "USER_EXISTS", "message": "Username already exists"}`
 - `400 Bad Request` — email 已存在：`{"code": "EMAIL_EXISTS", "message": "Email already exists"}`
-- `422 Unprocessable Entity` — 请求体校验失败（如 username 长度不符、email 格式非法）
+- `400 Bad Request` — phone 已存在：`{"code": "PHONE_EXISTS", "message": "Phone already exists"}`
+- `422 Unprocessable Entity` — 请求体校验失败（如 username 长度不符、email 格式非法、phone 格式不匹配）
 
 ---
 
@@ -308,6 +312,7 @@
       "id": 1,
       "username": "john_doe",
       "email": "john@example.com",
+      "phone": "+8613800138000",
       "is_active": true,
       "created_at": "2026-07-01T10:00:00Z",
       "updated_at": "2026-07-01T10:00:00Z"
@@ -343,6 +348,7 @@
   "id": 1,
   "username": "john_doe",
   "email": "john@example.com",
+  "phone": "+8613800138000",
   "is_active": true,
   "created_at": "2026-07-01T10:00:00Z",
   "updated_at": "2026-07-01T10:00:00Z"
@@ -371,6 +377,7 @@
 {
   "username": "john_updated",
   "email": "john_new@example.com",
+  "phone": "+8613900139000",
   "is_active": false
 }
 ```
@@ -379,6 +386,7 @@
 |------|------|------|------|------|
 | username | string | 否 | 3-32 字符，唯一 | 用户名 |
 | email | string | 否 | 合法邮箱格式，唯一 | 邮箱地址 |
+| phone | string | 否 | 格式匹配 `+?[1-9]\d{6,14}`，唯一 | 电话号码 |
 | is_active | bool | 否 | — | 是否激活 |
 
 **成功响应：** `200 OK`
@@ -388,6 +396,7 @@
   "id": 1,
   "username": "john_updated",
   "email": "john_new@example.com",
+  "phone": "+8613900139000",
   "is_active": false,
   "created_at": "2026-07-01T10:00:00Z",
   "updated_at": "2026-07-01T12:00:00Z"
@@ -399,6 +408,7 @@
 - `404 Not Found` — 用户不存在：`{"code": "NOT_FOUND", "message": "User not found"}`
 - `400 Bad Request` — username 已存在：`{"code": "USER_EXISTS", "message": "Username already exists"}`
 - `400 Bad Request` — email 已存在：`{"code": "EMAIL_EXISTS", "message": "Email already exists"}`
+- `400 Bad Request` — phone 已存在：`{"code": "PHONE_EXISTS", "message": "Phone already exists"}`
 - `422 Unprocessable Entity` — 请求体校验失败
 
 ---
@@ -429,6 +439,7 @@
 |------|--------|-------------|------|
 | username 唯一 | `USER_EXISTS` | 400 | 创建或更新时 username 已被其他用户占用 |
 | email 唯一 | `EMAIL_EXISTS` | 400 | 创建或更新时 email 已被其他用户占用 |
+| phone 唯一 | `PHONE_EXISTS` | 400 | 创建或更新时 phone 已被其他用户占用 |
 
 ### User 错误码汇总
 
@@ -437,4 +448,5 @@
 | `NOT_FOUND` | 404 | 用户不存在 |
 | `USER_EXISTS` | 400 | username 已被占用 |
 | `EMAIL_EXISTS` | 400 | email 已被占用 |
+| `PHONE_EXISTS` | 400 | phone 已被占用 |
 | `VALIDATION_ERROR` | 422 | 请求参数或请求体校验失败 |
