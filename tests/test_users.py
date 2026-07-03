@@ -87,10 +87,17 @@ class TestCreateUser:
         assert resp.status_code == 201
         assert resp.json()["phone"] is None
 
-    def test_create_user_invalid_phone(self, client):
+    def test_create_user_invalid_phone_alpha(self, client):
         resp = client.post(
             BASE_URL,
             json={"username": "phoneuser", "email": "p@test.com", "phone": "abc"},
+        )
+        assert resp.status_code == 422
+
+    def test_create_user_invalid_phone_short_digits(self, client):
+        resp = client.post(
+            BASE_URL,
+            json={"username": "phoneuser", "email": "p@test.com", "phone": "123"},
         )
         assert resp.status_code == 422
 
@@ -144,6 +151,20 @@ class TestListUsers:
         assert len(data["items"]) == 2
         assert data["page"] == 2
 
+    def test_list_users_items_include_phone(self, client):
+        client.post(
+            BASE_URL,
+            json={"username": "user1", "email": "u1@test.com", "phone": "+8613800138000"},
+        )
+        _create_user(client, username="user2", email="u2@test.com")
+        resp = client.get(BASE_URL)
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        for item in items:
+            assert "phone" in item
+        assert items[0]["phone"] == "+8613800138000"
+        assert items[1]["phone"] is None
+
     def test_list_users_default_pagination(self, client):
         _create_user(client)
         resp = client.get(BASE_URL)
@@ -172,6 +193,17 @@ class TestGetUser:
         assert data["is_active"] is True
         assert "created_at" in data
         assert "updated_at" in data
+
+    def test_get_user_includes_phone(self, client):
+        client.post(
+            BASE_URL,
+            json={"username": "phoneuser", "email": "p@test.com", "phone": "+8613800138000"},
+        )
+        resp = client.get(f"{BASE_URL}/1")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "phone" in data
+        assert data["phone"] == "+8613800138000"
 
     def test_get_user_not_found(self, client):
         resp = client.get(f"{BASE_URL}/9999")
@@ -261,6 +293,17 @@ class TestUpdateUser:
         assert resp.status_code == 200
         assert resp.json()["phone"] == "+8613900139000"
 
+    def test_update_phone_to_null(self, client):
+        create_resp = client.post(
+            BASE_URL,
+            json={"username": "phoneuser", "email": "p@test.com", "phone": "+8613800138000"},
+        )
+        user_id = create_resp.json()["id"]
+
+        resp = client.put(f"{BASE_URL}/{user_id}", json={"phone": None})
+        assert resp.status_code == 200
+        assert resp.json()["phone"] is None
+
     def test_update_phone_conflict(self, client):
         client.post(
             BASE_URL,
@@ -302,3 +345,41 @@ class TestDeleteUser:
         resp = client.delete(f"{BASE_URL}/9999")
         assert resp.status_code == 404
         assert resp.json()["code"] == "USER_NOT_FOUND"
+
+
+# =========================================================================
+# Phone Format Boundary Tests
+# =========================================================================
+
+
+class TestPhoneFormatBoundary:
+    def test_phone_min_length_7_digits(self, client):
+        resp = client.post(
+            BASE_URL,
+            json={"username": "minphone", "email": "min@test.com", "phone": "1234567"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["phone"] == "1234567"
+
+    def test_phone_max_length_15_digits(self, client):
+        resp = client.post(
+            BASE_URL,
+            json={
+                "username": "maxphone",
+                "email": "max@test.com",
+                "phone": "+123456789012345",
+            },
+        )
+        assert resp.status_code == 201
+        assert resp.json()["phone"] == "+123456789012345"
+
+    def test_phone_too_long_rejected(self, client):
+        resp = client.post(
+            BASE_URL,
+            json={
+                "username": "longphone",
+                "email": "long@test.com",
+                "phone": "+1234567890123456",
+            },
+        )
+        assert resp.status_code == 422

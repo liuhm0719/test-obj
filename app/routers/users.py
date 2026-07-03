@@ -3,6 +3,7 @@ import math
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.models.user import (
+    _UNSET,
     create_user,
     delete_user,
     get_user,
@@ -125,11 +126,14 @@ async def update_user_endpoint(user_id: int, body: UserUpdate):
         _check_email_unique(body.email, exclude_id=user_id)
     if body.phone is not None:
         _check_phone_unique(body.phone, exclude_id=user_id)
+
+    phone_value = body.phone if "phone" in body.model_fields_set else _UNSET
+
     updated = update_user(
         user_id,
         username=body.username,
         email=body.email,
-        phone=body.phone,
+        phone=phone_value,
         is_active=body.is_active,
     )
     return UserResponse.model_validate(updated)

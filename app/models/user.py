@@ -41,11 +41,14 @@ def get_users() -> list[User]:
     return list(users_db.values())
 
 
+_UNSET = object()
+
+
 def update_user(
     user_id: int,
     username: str | None = None,
     email: str | None = None,
-    phone: str | None = None,
+    phone: object = _UNSET,
     is_active: bool | None = None,
 ) -> User | None:
     user = users_db.get(user_id)
@@ -55,7 +58,7 @@ def update_user(
         user.username = username
     if email is not None:
         user.email = email
-    if phone is not None:
+    if phone is not _UNSET:
         user.phone = phone
     if is_active is not None:
         user.is_active = is_active
