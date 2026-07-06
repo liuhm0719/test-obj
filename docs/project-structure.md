@@ -17,14 +17,17 @@ project-root/
 │   │   ├── __init__.py
 │   │   ├── health.py      # 健康检查路由
 │   │   ├── todos.py       # Todo CRUD 路由端点
-│   │   └── users.py       # User CRUD 路由端点
+│   │   ├── users.py       # User CRUD 路由端点
+│   │   └── ec2.py         # EC2 实例 CRUD 路由端点
 │   ├── models/             # Pydantic 数据模型（业务实体）
 │   │   ├── __init__.py
 │   │   ├── todo.py        # Todo 实体模型与内存存储
-│   │   └── user.py        # User 实体模型与内存存储（int 自增 ID）
+│   │   ├── user.py        # User 实体模型与内存存储（int 自增 ID）
+│   │   └── ec2.py         # EC2 实例模型与内存存储（UUID ID）
 │   └── schemas/            # 请求/响应 Schema 定义
 │       ├── __init__.py
 │       ├── common.py      # 通用 Schema（ErrorResponse、PaginationParams）
+│       ├── ec2.py         # EC2 请求/响应 Schema（含 EC2State 枚举）
 │       ├── todo.py        # Todo 请求/响应 Schema
 │       └── user.py        # User 请求/响应 Schema（含 EmailStr 校验）
 ├── tests/                  # 测试目录
@@ -34,7 +37,8 @@ project-root/
 │   ├── test_startup.py    # 项目环境验证测试
 │   ├── test_startup_script.py # 服务启动脚本验证测试
 │   ├── test_todos.py      # Todo CRUD API 测试
-│   └── test_users.py      # User CRUD API 测试（22 个用例）
+│   ├── test_users.py      # User CRUD API 测试（22 个用例）
+│   └── test_ec2.py        # EC2 CRUD API 测试
 ├── docs/                   # 项目文档
 │   ├── api-design.md      # API 接口设计文档
 │   ├── data-models.md     # 数据模型设计文档

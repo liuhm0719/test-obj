@@ -19,6 +19,11 @@
 | GET | `/api/v1/todos/{id}` | 获取单个 Todo | 200 / 404 |
 | PUT | `/api/v1/todos/{id}` | 更新 Todo | 200 / 404 |
 | DELETE | `/api/v1/todos/{id}` | 删除 Todo | 200 / 404 |
+| POST | `/api/v1/ec2` | 创建 EC2 实例记录 | 201 |
+| GET | `/api/v1/ec2` | 获取 EC2 实例列表（分页） | 200 |
+| GET | `/api/v1/ec2/{ec2_id}` | 获取单个 EC2 实例 | 200 / 404 |
+| PUT | `/api/v1/ec2/{ec2_id}` | 更新 EC2 实例记录 | 200 / 404 |
+| DELETE | `/api/v1/ec2/{ec2_id}` | 删除 EC2 实例记录 | 204 / 404 |
 
 ---
 
@@ -449,4 +454,264 @@
 | `USER_EXISTS` | 400 | username 已被占用 |
 | `EMAIL_EXISTS` | 400 | email 已被占用 |
 | `PHONE_EXISTS` | 400 | phone 已被占用 |
+| `VALIDATION_ERROR` | 422 | 请求参数或请求体校验失败 |
+
+---
+
+## EC2 资源
+
+### 端点列表
+
+| 方法 | 路径 | 描述 | 状态码 |
+|------|------|------|--------|
+| POST | `/api/v1/ec2` | 创建 EC2 实例记录 | 201 |
+| GET | `/api/v1/ec2` | 获取 EC2 实例列表（分页） | 200 |
+| GET | `/api/v1/ec2/{ec2_id}` | 获取单个 EC2 实例 | 200 / 404 |
+| PUT | `/api/v1/ec2/{ec2_id}` | 更新 EC2 实例记录（部分更新） | 200 / 404 |
+| DELETE | `/api/v1/ec2/{ec2_id}` | 删除 EC2 实例记录 | 204 / 404 |
+
+---
+
+### 端点详细定义
+
+#### 1. POST /api/v1/ec2
+
+创建新的 EC2 实例记录。
+
+**请求体：**
+
+```json
+{
+  "instance_id": "i-0abc1234def56789",
+  "name": "web-server-01",
+  "instance_type": "t2.micro",
+  "state": "running",
+  "region": "us-east-1",
+  "availability_zone": "us-east-1a",
+  "private_ip": "10.0.1.100",
+  "public_ip": "54.123.45.67",
+  "vpc_id": "vpc-0abc1234",
+  "key_name": "my-key-pair",
+  "launch_time": "2026-07-01T10:00:00Z",
+  "tags": {"Environment": "production", "Team": "backend"}
+}
+```
+
+| 字段 | 类型 | 必填 | 约束 | 说明 |
+|------|------|------|------|------|
+| instance_id | string | 是 | 非空 | AWS 实例 ID |
+| name | string | 是 | 1-255 字符 | 实例名称（对应 Name 标签） |
+| instance_type | string | 是 | 非空 | 实例类型 |
+| state | string | 是 | 枚举：running/stopped/terminated/pending | 实例状态 |
+| region | string | 是 | 非空 | AWS 区域 |
+| availability_zone | string | 否 | — | 可用区 |
+| private_ip | string | 否 | — | 私有 IP 地址 |
+| public_ip | string | 否 | — | 公网 IP 地址 |
+| vpc_id | string | 否 | — | VPC ID |
+| key_name | string | 否 | — | SSH 密钥对名称 |
+| launch_time | string | 否 | ISO 8601 格式 | 实例启动时间 |
+| tags | object | 否 | 键值对 | 标签（默认空对象） |
+
+**成功响应：** `201 Created`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "instance_id": "i-0abc1234def56789",
+  "name": "web-server-01",
+  "instance_type": "t2.micro",
+  "state": "running",
+  "region": "us-east-1",
+  "availability_zone": "us-east-1a",
+  "private_ip": "10.0.1.100",
+  "public_ip": "54.123.45.67",
+  "vpc_id": "vpc-0abc1234",
+  "key_name": "my-key-pair",
+  "launch_time": "2026-07-01T10:00:00Z",
+  "tags": {"Environment": "production", "Team": "backend"},
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T10:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `422 Unprocessable Entity` — 请求体校验失败（如必填字段缺失、state 不在枚举范围内）
+
+---
+
+#### 2. GET /api/v1/ec2
+
+获取 EC2 实例列表，支持分页。
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 默认值 | 约束 | 说明 |
+|------|------|------|--------|------|------|
+| page | int | 否 | 1 | >= 1 | 页码 |
+| size | int | 否 | 20 | 1-100 | 每页条数 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "items": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "instance_id": "i-0abc1234def56789",
+      "name": "web-server-01",
+      "instance_type": "t2.micro",
+      "state": "running",
+      "region": "us-east-1",
+      "availability_zone": "us-east-1a",
+      "private_ip": "10.0.1.100",
+      "public_ip": "54.123.45.67",
+      "vpc_id": "vpc-0abc1234",
+      "key_name": "my-key-pair",
+      "launch_time": "2026-07-01T10:00:00Z",
+      "tags": {"Environment": "production"},
+      "created_at": "2026-07-01T10:00:00Z",
+      "updated_at": "2026-07-01T10:00:00Z"
+    }
+  ],
+  "total": 10,
+  "page": 1,
+  "size": 20,
+  "pages": 1
+}
+```
+
+**错误响应：**
+
+- `422 Unprocessable Entity` — 参数校验失败（如 page < 1 或 size > 100）
+
+---
+
+#### 3. GET /api/v1/ec2/{ec2_id}
+
+获取单个 EC2 实例详情。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| ec2_id | string (UUID) | EC2 实例的内部唯一标识符 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "instance_id": "i-0abc1234def56789",
+  "name": "web-server-01",
+  "instance_type": "t2.micro",
+  "state": "running",
+  "region": "us-east-1",
+  "availability_zone": "us-east-1a",
+  "private_ip": "10.0.1.100",
+  "public_ip": "54.123.45.67",
+  "vpc_id": "vpc-0abc1234",
+  "key_name": "my-key-pair",
+  "launch_time": "2026-07-01T10:00:00Z",
+  "tags": {"Environment": "production"},
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T10:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `404 Not Found` — EC2 实例不存在：`{"code": "NOT_FOUND", "message": "EC2 instance not found"}`
+
+---
+
+#### 4. PUT /api/v1/ec2/{ec2_id}
+
+更新已有 EC2 实例记录，支持部分更新（仅传入需要修改的字段）。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| ec2_id | string (UUID) | EC2 实例的内部唯一标识符 |
+
+**请求体：**
+
+```json
+{
+  "state": "stopped",
+  "instance_type": "m5.large",
+  "tags": {"Environment": "staging"}
+}
+```
+
+| 字段 | 类型 | 必填 | 约束 | 说明 |
+|------|------|------|------|------|
+| instance_id | string | 否 | 非空 | AWS 实例 ID |
+| name | string | 否 | 1-255 字符 | 实例名称 |
+| instance_type | string | 否 | 非空 | 实例类型 |
+| state | string | 否 | 枚举：running/stopped/terminated/pending | 实例状态 |
+| region | string | 否 | 非空 | AWS 区域 |
+| availability_zone | string | 否 | — | 可用区 |
+| private_ip | string | 否 | — | 私有 IP 地址 |
+| public_ip | string | 否 | — | 公网 IP 地址 |
+| vpc_id | string | 否 | — | VPC ID |
+| key_name | string | 否 | — | SSH 密钥对名称 |
+| launch_time | string | 否 | ISO 8601 格式 | 实例启动时间 |
+| tags | object | 否 | 键值对 | 标签 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "instance_id": "i-0abc1234def56789",
+  "name": "web-server-01",
+  "instance_type": "m5.large",
+  "state": "stopped",
+  "region": "us-east-1",
+  "availability_zone": "us-east-1a",
+  "private_ip": "10.0.1.100",
+  "public_ip": "54.123.45.67",
+  "vpc_id": "vpc-0abc1234",
+  "key_name": "my-key-pair",
+  "launch_time": "2026-07-01T10:00:00Z",
+  "tags": {"Environment": "staging"},
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T12:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `404 Not Found` — EC2 实例不存在：`{"code": "NOT_FOUND", "message": "EC2 instance not found"}`
+- `422 Unprocessable Entity` — 请求体校验失败
+
+---
+
+#### 5. DELETE /api/v1/ec2/{ec2_id}
+
+删除指定 EC2 实例记录。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| ec2_id | string (UUID) | EC2 实例的内部唯一标识符 |
+
+**成功响应：** `204 No Content`
+
+无响应体。
+
+**错误响应：**
+
+- `404 Not Found` — EC2 实例不存在：`{"code": "NOT_FOUND", "message": "EC2 instance not found"}`
+
+---
+
+### EC2 错误码汇总
+
+| 错误码 | HTTP 状态码 | 说明 |
+|--------|-------------|------|
+| `NOT_FOUND` | 404 | EC2 实例不存在 |
 | `VALIDATION_ERROR` | 422 | 请求参数或请求体校验失败 |

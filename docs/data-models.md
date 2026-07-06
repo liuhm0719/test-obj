@@ -20,6 +20,11 @@
 | `UserUpdate` | 更新用户请求体（部分更新） | `app/schemas/user.py` |
 | `UserResponse` | 单个用户响应 | `app/schemas/user.py` |
 | `UserListResponse` | 用户列表分页响应 | `app/schemas/user.py` |
+| `EC2State` | EC2 实例状态枚举 | `app/schemas/ec2.py` |
+| `EC2Create` | 创建 EC2 实例请求体 | `app/schemas/ec2.py` |
+| `EC2Update` | 更新 EC2 实例请求体（部分更新） | `app/schemas/ec2.py` |
+| `EC2Response` | 单个 EC2 实例响应 | `app/schemas/ec2.py` |
+| `EC2ListResponse` | EC2 实例列表分页响应 | `app/schemas/ec2.py` |
 | `ErrorResponse` | 统一错误响应 | `app/schemas/common.py` |
 | `PaginationParams` | 分页查询参数 | `app/schemas/common.py` |
 
@@ -414,12 +419,222 @@ class UserListResponse(BaseModel):
 
 ---
 
+---
+
+## EC2 模型定义
+
+### EC2State 枚举
+
+EC2 实例状态枚举值。
+
+| 值 | 说明 |
+|------|------|
+| `running` | 运行中 |
+| `stopped` | 已停止 |
+| `terminated` | 已终止 |
+| `pending` | 待处理 |
+
+---
+
+### EC2Instance（内部模型）
+
+EC2 实例的业务实体模型（`app/models/ec2.py`），使用内存字典存储。
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| id | str | 自动生成 | UUID4 | 内部唯一标识 |
+| instance_id | str | 是 | — | AWS 实例 ID |
+| name | str | 是 | — | 实例名称 |
+| instance_type | str | 是 | — | 实例类型 |
+| state | str | 是 | — | 实例状态（EC2State 枚举值） |
+| region | str | 是 | — | AWS 区域 |
+| availability_zone | str \| None | 否 | None | 可用区 |
+| private_ip | str \| None | 否 | None | 私有 IP 地址 |
+| public_ip | str \| None | 否 | None | 公网 IP 地址 |
+| vpc_id | str \| None | 否 | None | VPC ID |
+| key_name | str \| None | 否 | None | SSH 密钥对名称 |
+| launch_time | str \| None | 否 | None | 实例启动时间（ISO 8601） |
+| tags | dict[str, str] | 否 | `{}` | 标签键值对 |
+| created_at | str | 自动生成 | 当前 UTC 时间 ISO 8601 | 记录创建时间 |
+| updated_at | str | 自动生成 | 当前 UTC 时间 ISO 8601 | 记录更新时间 |
+
+---
+
+### EC2Create
+
+创建 EC2 实例的请求体。
+
+```python
+from pydantic import BaseModel, Field
+from app.schemas.ec2 import EC2State
+
+
+class EC2Create(BaseModel):
+    instance_id: str = Field(..., min_length=1)
+    name: str = Field(..., min_length=1, max_length=255)
+    instance_type: str = Field(..., min_length=1)
+    state: EC2State = Field(...)
+    region: str = Field(..., min_length=1)
+    availability_zone: str | None = Field(None)
+    private_ip: str | None = Field(None)
+    public_ip: str | None = Field(None)
+    vpc_id: str | None = Field(None)
+    key_name: str | None = Field(None)
+    launch_time: str | None = Field(None)
+    tags: dict[str, str] = Field(default_factory=dict)
+```
+
+| 字段 | 类型 | 必填 | 约束 | 默认值 | 示例 |
+|------|------|------|------|--------|------|
+| instance_id | str | 是 | 非空 | — | `"i-0abc1234def56789"` |
+| name | str | 是 | 1-255 字符 | — | `"web-server-01"` |
+| instance_type | str | 是 | 非空 | — | `"t2.micro"` |
+| state | EC2State | 是 | 枚举 | — | `"running"` |
+| region | str | 是 | 非空 | — | `"us-east-1"` |
+| availability_zone | str \| None | 否 | — | None | `"us-east-1a"` |
+| private_ip | str \| None | 否 | — | None | `"10.0.1.100"` |
+| public_ip | str \| None | 否 | — | None | `"54.123.45.67"` |
+| vpc_id | str \| None | 否 | — | None | `"vpc-0abc1234"` |
+| key_name | str \| None | 否 | — | None | `"my-key-pair"` |
+| launch_time | str \| None | 否 | ISO 8601 | None | `"2026-07-01T10:00:00Z"` |
+| tags | dict[str, str] | 否 | — | `{}` | `{"Environment": "production"}` |
+
+---
+
+### EC2Update
+
+更新 EC2 实例的请求体（部分更新，所有字段可选）。
+
+```python
+class EC2Update(BaseModel):
+    instance_id: str | None = Field(None, min_length=1)
+    name: str | None = Field(None, min_length=1, max_length=255)
+    instance_type: str | None = Field(None, min_length=1)
+    state: EC2State | None = Field(None)
+    region: str | None = Field(None, min_length=1)
+    availability_zone: str | None = Field(None)
+    private_ip: str | None = Field(None)
+    public_ip: str | None = Field(None)
+    vpc_id: str | None = Field(None)
+    key_name: str | None = Field(None)
+    launch_time: str | None = Field(None)
+    tags: dict[str, str] | None = Field(None)
+```
+
+| 字段 | 类型 | 必填 | 约束 | 默认值 | 示例 |
+|------|------|------|------|--------|------|
+| instance_id | str \| None | 否 | 非空 | None | `"i-0abc1234def56789"` |
+| name | str \| None | 否 | 1-255 字符 | None | `"web-server-02"` |
+| instance_type | str \| None | 否 | 非空 | None | `"m5.large"` |
+| state | EC2State \| None | 否 | 枚举 | None | `"stopped"` |
+| region | str \| None | 否 | 非空 | None | `"us-west-2"` |
+| availability_zone | str \| None | 否 | — | None | `"us-west-2a"` |
+| private_ip | str \| None | 否 | — | None | `"10.0.2.200"` |
+| public_ip | str \| None | 否 | — | None | `"52.200.100.50"` |
+| vpc_id | str \| None | 否 | — | None | `"vpc-0def5678"` |
+| key_name | str \| None | 否 | — | None | `"new-key-pair"` |
+| launch_time | str \| None | 否 | ISO 8601 | None | `"2026-07-01T12:00:00Z"` |
+| tags | dict[str, str] \| None | 否 | — | None | `{"Environment": "staging"}` |
+
+---
+
+### EC2Response
+
+单个 EC2 实例的响应体。
+
+```python
+class EC2Response(BaseModel):
+    id: str
+    instance_id: str
+    name: str
+    instance_type: str
+    state: str
+    region: str
+    availability_zone: str | None = None
+    private_ip: str | None = None
+    public_ip: str | None = None
+    vpc_id: str | None = None
+    key_name: str | None = None
+    launch_time: str | None = None
+    tags: dict[str, str] = Field(default_factory=dict)
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+```
+
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| id | str | 内部唯一标识（UUID） | `"550e8400-e29b-41d4-a716-446655440000"` |
+| instance_id | str | AWS 实例 ID | `"i-0abc1234def56789"` |
+| name | str | 实例名称 | `"web-server-01"` |
+| instance_type | str | 实例类型 | `"t2.micro"` |
+| state | str | 实例状态 | `"running"` |
+| region | str | AWS 区域 | `"us-east-1"` |
+| availability_zone | str \| None | 可用区 | `"us-east-1a"` |
+| private_ip | str \| None | 私有 IP | `"10.0.1.100"` |
+| public_ip | str \| None | 公网 IP | `"54.123.45.67"` |
+| vpc_id | str \| None | VPC ID | `"vpc-0abc1234"` |
+| key_name | str \| None | SSH 密钥对名称 | `"my-key-pair"` |
+| launch_time | str \| None | 启动时间 | `"2026-07-01T10:00:00Z"` |
+| tags | dict[str, str] | 标签 | `{"Environment": "production"}` |
+| created_at | datetime | 记录创建时间（UTC） | `"2026-07-01T10:00:00Z"` |
+| updated_at | datetime | 记录更新时间（UTC） | `"2026-07-01T10:00:00Z"` |
+
+---
+
+### EC2ListResponse
+
+EC2 实例列表分页响应。
+
+```python
+class EC2ListResponse(BaseModel):
+    items: list[EC2Response]
+    total: int = Field(..., ge=0)
+    page: int = Field(..., ge=1)
+    size: int = Field(..., ge=1)
+    pages: int = Field(..., ge=0)
+```
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| items | list[EC2Response] | — | 当前页的 EC2 实例列表 |
+| total | int | >= 0 | 总记录数 |
+| page | int | >= 1 | 当前页码 |
+| size | int | >= 1 | 每页条数 |
+| pages | int | >= 0 | 总页数 |
+
+---
+
+### EC2 Schema 字段对比
+
+| 字段 | EC2Create | EC2Update | EC2Response |
+|------|-----------|-----------|-------------|
+| id | — | — | ✓ |
+| instance_id | ✓ 必填 | ✓ 可选 | ✓ |
+| name | ✓ 必填 | ✓ 可选 | ✓ |
+| instance_type | ✓ 必填 | ✓ 可选 | ✓ |
+| state | ✓ 必填 | ✓ 可选 | ✓ |
+| region | ✓ 必填 | ✓ 可选 | ✓ |
+| availability_zone | ✓ 可选 | ✓ 可选 | ✓ |
+| private_ip | ✓ 可选 | ✓ 可选 | ✓ |
+| public_ip | ✓ 可选 | ✓ 可选 | ✓ |
+| vpc_id | ✓ 可选 | ✓ 可选 | ✓ |
+| key_name | ✓ 可选 | ✓ 可选 | ✓ |
+| launch_time | ✓ 可选 | ✓ 可选 | ✓ |
+| tags | ✓ 可选（默认 `{}`） | ✓ 可选 | ✓ |
+| created_at | — | — | ✓ |
+| updated_at | — | — | ✓ |
+
+---
+
 ## 文件组织
 
 ```
 app/schemas/
 ├── __init__.py       # 导出所有 Schema
 ├── common.py         # ErrorResponse, PaginationParams
+├── ec2.py            # EC2State, EC2Create, EC2Update, EC2Response, EC2ListResponse
 ├── todo.py           # TodoCreate, TodoUpdate, TodoResponse, TodoListResponse
 └── user.py           # UserCreate, UserUpdate, UserResponse, UserListResponse
 ```
@@ -428,12 +643,18 @@ app/schemas/
 
 ```python
 from app.schemas.common import ErrorResponse, PaginationParams
+from app.schemas.ec2 import EC2Create, EC2Update, EC2Response, EC2ListResponse, EC2State
 from app.schemas.todo import TodoCreate, TodoUpdate, TodoResponse, TodoListResponse
 from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
 
 __all__ = [
     "ErrorResponse",
     "PaginationParams",
+    "EC2State",
+    "EC2Create",
+    "EC2Update",
+    "EC2Response",
+    "EC2ListResponse",
     "TodoCreate",
     "TodoUpdate",
     "TodoResponse",
