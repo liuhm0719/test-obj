@@ -24,6 +24,11 @@
 | GET | `/api/v1/ec2/{ec2_id}` | 获取单个 EC2 实例 | 200 / 404 |
 | PUT | `/api/v1/ec2/{ec2_id}` | 更新 EC2 实例记录 | 200 / 404 |
 | DELETE | `/api/v1/ec2/{ec2_id}` | 删除 EC2 实例记录 | 204 / 404 |
+| POST | `/api/v1/rds` | 创建 RDS 实例记录 | 201 |
+| GET | `/api/v1/rds` | 获取 RDS 实例列表（分页） | 200 |
+| GET | `/api/v1/rds/{rds_id}` | 获取单个 RDS 实例 | 200 / 404 |
+| PUT | `/api/v1/rds/{rds_id}` | 更新 RDS 实例记录 | 200 / 404 |
+| DELETE | `/api/v1/rds/{rds_id}` | 删除 RDS 实例记录 | 204 / 404 |
 
 ---
 
@@ -714,4 +719,260 @@
 | 错误码 | HTTP 状态码 | 说明 |
 |--------|-------------|------|
 | `NOT_FOUND` | 404 | EC2 实例不存在 |
+| `VALIDATION_ERROR` | 422 | 请求参数或请求体校验失败 |
+
+---
+
+## RDS 资源
+
+### 端点列表
+
+| 方法 | 路径 | 描述 | 状态码 |
+|------|------|------|--------|
+| POST | `/api/v1/rds` | 创建 RDS 实例记录 | 201 |
+| GET | `/api/v1/rds` | 获取 RDS 实例列表（分页） | 200 |
+| GET | `/api/v1/rds/{rds_id}` | 获取单个 RDS 实例 | 200 / 404 |
+| PUT | `/api/v1/rds/{rds_id}` | 更新 RDS 实例记录 | 200 / 404 |
+| DELETE | `/api/v1/rds/{rds_id}` | 删除 RDS 实例记录 | 204 / 404 |
+
+---
+
+### 端点详细定义
+
+#### 1. POST /api/v1/rds
+
+创建新的 RDS 实例记录。
+
+**请求体：**
+
+```json
+{
+  "db_instance_identifier": "my-database-01",
+  "engine": "mysql",
+  "engine_version": "8.0.35",
+  "db_instance_class": "db.t3.micro",
+  "allocated_storage": 20,
+  "master_username": "admin",
+  "status": "creating",
+  "endpoint": "my-database-01.abc123.us-east-1.rds.amazonaws.com",
+  "port": 3306,
+  "multi_az": false,
+  "region": "us-east-1"
+}
+```
+
+| 字段 | 类型 | 必填 | 约束 | 说明 |
+|------|------|------|------|------|
+| db_instance_identifier | string | 是 | 非空，唯一 | RDS 实例标识符 |
+| engine | string | 是 | 枚举：mysql/postgres/mariadb/oracle/sqlserver | 数据库引擎 |
+| engine_version | string | 是 | 非空 | 引擎版本号 |
+| db_instance_class | string | 是 | 非空 | 实例规格 |
+| allocated_storage | int | 是 | > 0 | 分配存储空间（GB） |
+| master_username | string | 是 | 非空 | 主用户名 |
+| status | string | 否 | 枚举：creating/available/deleting/stopped | 实例状态（默认 creating） |
+| endpoint | string | 否 | — | 连接端点地址 |
+| port | int | 否 | 1-65535 | 连接端口（默认 3306） |
+| multi_az | bool | 否 | — | 是否多可用区部署（默认 false） |
+| region | string | 否 | 非空 | 所在区域（默认 us-east-1） |
+
+**成功响应：** `201 Created`
+
+```json
+{
+  "id": 1,
+  "db_instance_identifier": "my-database-01",
+  "engine": "mysql",
+  "engine_version": "8.0.35",
+  "db_instance_class": "db.t3.micro",
+  "allocated_storage": 20,
+  "status": "creating",
+  "endpoint": "my-database-01.abc123.us-east-1.rds.amazonaws.com",
+  "port": 3306,
+  "master_username": "admin",
+  "multi_az": false,
+  "region": "us-east-1",
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T10:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `400 Bad Request` — db_instance_identifier 已存在：`{"code": "DUPLICATE_IDENTIFIER", "message": "db_instance_identifier 'my-database-01' already exists"}`
+- `422 Unprocessable Entity` — 请求体校验失败（如必填字段缺失、engine 不在枚举范围内）
+
+---
+
+#### 2. GET /api/v1/rds
+
+获取 RDS 实例列表，支持分页。
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 默认值 | 约束 | 说明 |
+|------|------|------|--------|------|------|
+| page | int | 否 | 1 | >= 1 | 页码 |
+| size | int | 否 | 20 | 1-100 | 每页条数 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "db_instance_identifier": "my-database-01",
+      "engine": "mysql",
+      "engine_version": "8.0.35",
+      "db_instance_class": "db.t3.micro",
+      "allocated_storage": 20,
+      "status": "available",
+      "endpoint": "my-database-01.abc123.us-east-1.rds.amazonaws.com",
+      "port": 3306,
+      "master_username": "admin",
+      "multi_az": false,
+      "region": "us-east-1",
+      "created_at": "2026-07-01T10:00:00Z",
+      "updated_at": "2026-07-01T10:00:00Z"
+    }
+  ],
+  "total": 10,
+  "page": 1,
+  "size": 20,
+  "pages": 1
+}
+```
+
+**错误响应：**
+
+- `422 Unprocessable Entity` — 参数校验失败（如 page < 1 或 size > 100）
+
+---
+
+#### 3. GET /api/v1/rds/{rds_id}
+
+获取单个 RDS 实例详情。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| rds_id | int | RDS 实例的内部唯一标识符 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "id": 1,
+  "db_instance_identifier": "my-database-01",
+  "engine": "mysql",
+  "engine_version": "8.0.35",
+  "db_instance_class": "db.t3.micro",
+  "allocated_storage": 20,
+  "status": "available",
+  "endpoint": "my-database-01.abc123.us-east-1.rds.amazonaws.com",
+  "port": 3306,
+  "master_username": "admin",
+  "multi_az": false,
+  "region": "us-east-1",
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T10:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `404 Not Found` — RDS 实例不存在：`{"code": "NOT_FOUND", "message": "RDS instance not found"}`
+
+---
+
+#### 4. PUT /api/v1/rds/{rds_id}
+
+更新已有 RDS 实例记录，支持部分更新（仅传入需要修改的字段）。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| rds_id | int | RDS 实例的内部唯一标识符 |
+
+**请求体：**
+
+```json
+{
+  "db_instance_class": "db.m5.large",
+  "allocated_storage": 100,
+  "status": "available"
+}
+```
+
+| 字段 | 类型 | 必填 | 约束 | 说明 |
+|------|------|------|------|------|
+| db_instance_identifier | string | 否 | 非空，唯一 | RDS 实例标识符 |
+| engine | string | 否 | 枚举：mysql/postgres/mariadb/oracle/sqlserver | 数据库引擎 |
+| engine_version | string | 否 | 非空 | 引擎版本号 |
+| db_instance_class | string | 否 | 非空 | 实例规格 |
+| allocated_storage | int | 否 | > 0 | 分配存储空间（GB） |
+| status | string | 否 | 枚举：creating/available/deleting/stopped | 实例状态 |
+| endpoint | string | 否 | — | 连接端点地址 |
+| port | int | 否 | 1-65535 | 连接端口 |
+| master_username | string | 否 | 非空 | 主用户名 |
+| multi_az | bool | 否 | — | 是否多可用区部署 |
+| region | string | 否 | 非空 | 所在区域 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "id": 1,
+  "db_instance_identifier": "my-database-01",
+  "engine": "mysql",
+  "engine_version": "8.0.35",
+  "db_instance_class": "db.m5.large",
+  "allocated_storage": 100,
+  "status": "available",
+  "endpoint": "my-database-01.abc123.us-east-1.rds.amazonaws.com",
+  "port": 3306,
+  "master_username": "admin",
+  "multi_az": false,
+  "region": "us-east-1",
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T12:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `400 Bad Request` — db_instance_identifier 已存在：`{"code": "DUPLICATE_IDENTIFIER", "message": "db_instance_identifier 'my-database-01' already exists"}`
+- `404 Not Found` — RDS 实例不存在：`{"code": "NOT_FOUND", "message": "RDS instance not found"}`
+- `422 Unprocessable Entity` — 请求体校验失败
+
+---
+
+#### 5. DELETE /api/v1/rds/{rds_id}
+
+删除指定 RDS 实例记录。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| rds_id | int | RDS 实例的内部唯一标识符 |
+
+**成功响应：** `204 No Content`
+
+无响应体。
+
+**错误响应：**
+
+- `404 Not Found` — RDS 实例不存在：`{"code": "NOT_FOUND", "message": "RDS instance not found"}`
+
+---
+
+### RDS 错误码汇总
+
+| 错误码 | HTTP 状态码 | 说明 |
+|--------|-------------|------|
+| `NOT_FOUND` | 404 | RDS 实例不存在 |
+| `DUPLICATE_IDENTIFIER` | 400 | db_instance_identifier 已被占用 |
 | `VALIDATION_ERROR` | 422 | 请求参数或请求体校验失败 |

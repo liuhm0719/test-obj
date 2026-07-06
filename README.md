@@ -1,6 +1,6 @@
 # FastAPI Example Project
 
-基于 FastAPI 构建的示例 RESTful API 项目，包含 Todo、User 和 EC2 资源 CRUD 接口。
+基于 FastAPI 构建的示例 RESTful API 项目，包含 Todo、User、EC2 和 RDS 资源 CRUD 接口。
 
 ## 环境要求
 
@@ -95,6 +95,16 @@ APP_ENV=prod APP_PORT=9000 APP_WORKERS=8 ./run.sh
 | GET | `/api/v1/ec2/{ec2_id}` | 获取单个 EC2 实例 |
 | PUT | `/api/v1/ec2/{ec2_id}` | 更新 EC2 实例记录 |
 | DELETE | `/api/v1/ec2/{ec2_id}` | 删除 EC2 实例记录 |
+
+### RDS 资源
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | `/api/v1/rds` | 创建 RDS 实例记录 |
+| GET | `/api/v1/rds` | RDS 实例列表（分页） |
+| GET | `/api/v1/rds/{rds_id}` | 获取单个 RDS 实例 |
+| PUT | `/api/v1/rds/{rds_id}` | 更新 RDS 实例记录 |
+| DELETE | `/api/v1/rds/{rds_id}` | 删除 RDS 实例记录 |
 
 ## API 文档
 
