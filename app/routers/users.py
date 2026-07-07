@@ -2,6 +2,8 @@ import math
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.models.membership import get_user_projects, remove_user_from_all_projects
+from app.models.project import projects_db
 from app.models.user import (
     _UNSET,
     create_user,
@@ -12,6 +14,8 @@ from app.models.user import (
     users_db,
 )
 from app.schemas.common import ErrorResponse, PaginationParams
+from app.schemas.membership import UserProjectsResponse
+from app.schemas.project import ProjectResponse
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
@@ -151,3 +155,29 @@ async def delete_user_endpoint(user_id: int):
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "USER_NOT_FOUND", "message": "User not found"},
         )
+    remove_user_from_all_projects(user_id)
+
+
+@router.get(
+    "/{user_id}/projects",
+    response_model=UserProjectsResponse,
+    responses={404: {"model": ErrorResponse}},
+)
+async def list_user_projects(user_id: int):
+    user = get_user(user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found"},
+        )
+    project_ids = get_user_projects(user_id)
+    projects = []
+    for pid in project_ids:
+        project = projects_db.get(pid)
+        if project is not None:
+            projects.append(ProjectResponse.model_validate(project))
+    return UserProjectsResponse(
+        user_id=user_id,
+        projects=projects,
+        total=len(projects),
+    )

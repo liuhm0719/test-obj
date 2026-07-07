@@ -1,5 +1,11 @@
 from app.schemas.common import ErrorResponse, PaginationParams
 from app.schemas.ec2 import EC2Create, EC2ListResponse, EC2Response, EC2Update
+from app.schemas.membership import (
+    MembershipAdd,
+    MembershipResponse,
+    ProjectMembersResponse,
+    UserProjectsResponse,
+)
 from app.schemas.project import (
     ProjectCreate,
     ProjectListResponse,
@@ -17,6 +23,10 @@ __all__ = [
     "EC2Update",
     "EC2Response",
     "EC2ListResponse",
+    "MembershipAdd",
+    "MembershipResponse",
+    "ProjectMembersResponse",
+    "UserProjectsResponse",
     "ProjectCreate",
     "ProjectUpdate",
     "ProjectResponse",
