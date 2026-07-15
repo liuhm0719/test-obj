@@ -29,6 +29,11 @@
 | GET | `/api/v1/rds/{rds_id}` | 获取单个 RDS 实例 | 200 / 404 |
 | PUT | `/api/v1/rds/{rds_id}` | 更新 RDS 实例记录 | 200 / 404 |
 | DELETE | `/api/v1/rds/{rds_id}` | 删除 RDS 实例记录 | 204 / 404 |
+| POST | `/api/v1/redis` | 创建 Redis 实例记录 | 201 |
+| GET | `/api/v1/redis` | 获取 Redis 实例列表（分页） | 200 |
+| GET | `/api/v1/redis/{redis_id}` | 获取单个 Redis 实例 | 200 / 404 |
+| PUT | `/api/v1/redis/{redis_id}` | 更新 Redis 实例记录 | 200 / 404 |
+| DELETE | `/api/v1/redis/{redis_id}` | 删除 Redis 实例记录 | 204 / 404 |
 
 ---
 
@@ -975,4 +980,246 @@
 |--------|-------------|------|
 | `NOT_FOUND` | 404 | RDS 实例不存在 |
 | `DUPLICATE_IDENTIFIER` | 400 | db_instance_identifier 已被占用 |
+| `VALIDATION_ERROR` | 422 | 请求参数或请求体校验失败 |
+
+---
+
+## Redis 资源
+
+### 端点列表
+
+| 方法 | 路径 | 描述 | 状态码 |
+|------|------|------|--------|
+| POST | `/api/v1/redis` | 创建 Redis 实例记录 | 201 |
+| GET | `/api/v1/redis` | 获取 Redis 实例列表（分页） | 200 |
+| GET | `/api/v1/redis/{redis_id}` | 获取单个 Redis 实例 | 200 / 404 |
+| PUT | `/api/v1/redis/{redis_id}` | 更新 Redis 实例记录 | 200 / 404 |
+| DELETE | `/api/v1/redis/{redis_id}` | 删除 Redis 实例记录 | 204 / 404 |
+
+---
+
+### 端点详细定义
+
+#### 1. POST /api/v1/redis
+
+创建新的 Redis 实例记录。
+
+**请求体：**
+
+```json
+{
+  "cluster_id": "my-redis-cluster-01",
+  "node_type": "cache.t3.micro",
+  "engine_version": "7.0",
+  "status": "creating",
+  "endpoint": "my-redis-cluster-01.abc123.0001.use1.cache.amazonaws.com",
+  "port": 6379,
+  "num_shards": 1,
+  "replicas_per_shard": 1,
+  "region": "us-east-1"
+}
+```
+
+| 字段 | 类型 | 必填 | 约束 | 说明 |
+|------|------|------|------|------|
+| cluster_id | string | 是 | 非空，唯一 | Redis 集群标识符 |
+| node_type | string | 是 | 非空 | 节点实例规格 |
+| engine_version | string | 是 | 非空 | Redis 引擎版本号 |
+| status | string | 否 | 枚举：creating/available/deleting/stopped | 实例状态（默认 creating） |
+| endpoint | string | 否 | — | 连接端点地址 |
+| port | int | 否 | 1-65535 | 连接端口（默认 6379） |
+| num_shards | int | 否 | >= 1 | 分片数量（默认 1） |
+| replicas_per_shard | int | 否 | >= 0 | 每分片副本数（默认 0） |
+| region | string | 否 | 非空 | 所在区域（默认 us-east-1） |
+
+**成功响应：** `201 Created`
+
+```json
+{
+  "id": 1,
+  "cluster_id": "my-redis-cluster-01",
+  "node_type": "cache.t3.micro",
+  "engine_version": "7.0",
+  "status": "creating",
+  "endpoint": "my-redis-cluster-01.abc123.0001.use1.cache.amazonaws.com",
+  "port": 6379,
+  "num_shards": 1,
+  "replicas_per_shard": 1,
+  "region": "us-east-1",
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T10:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `400 Bad Request` — cluster_id 已存在：`{"code": "DUPLICATE_IDENTIFIER", "message": "cluster_id 'my-redis-cluster-01' already exists"}`
+- `422 Unprocessable Entity` — 请求体校验失败（如必填字段缺失、status 不在枚举范围内）
+
+---
+
+#### 2. GET /api/v1/redis
+
+获取 Redis 实例列表，支持分页。
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 默认值 | 约束 | 说明 |
+|------|------|------|--------|------|------|
+| page | int | 否 | 1 | >= 1 | 页码 |
+| size | int | 否 | 20 | 1-100 | 每页条数 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "cluster_id": "my-redis-cluster-01",
+      "node_type": "cache.t3.micro",
+      "engine_version": "7.0",
+      "status": "available",
+      "endpoint": "my-redis-cluster-01.abc123.0001.use1.cache.amazonaws.com",
+      "port": 6379,
+      "num_shards": 1,
+      "replicas_per_shard": 1,
+      "region": "us-east-1",
+      "created_at": "2026-07-01T10:00:00Z",
+      "updated_at": "2026-07-01T10:00:00Z"
+    }
+  ],
+  "total": 10,
+  "page": 1,
+  "size": 20,
+  "pages": 1
+}
+```
+
+**错误响应：**
+
+- `422 Unprocessable Entity` — 参数校验失败（如 page < 1 或 size > 100）
+
+---
+
+#### 3. GET /api/v1/redis/{redis_id}
+
+获取单个 Redis 实例详情。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| redis_id | int | Redis 实例的内部唯一标识符 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "id": 1,
+  "cluster_id": "my-redis-cluster-01",
+  "node_type": "cache.t3.micro",
+  "engine_version": "7.0",
+  "status": "available",
+  "endpoint": "my-redis-cluster-01.abc123.0001.use1.cache.amazonaws.com",
+  "port": 6379,
+  "num_shards": 1,
+  "replicas_per_shard": 1,
+  "region": "us-east-1",
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T10:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `404 Not Found` — Redis 实例不存在：`{"code": "NOT_FOUND", "message": "Redis instance not found"}`
+
+---
+
+#### 4. PUT /api/v1/redis/{redis_id}
+
+更新已有 Redis 实例记录，支持部分更新（仅传入需要修改的字段）。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| redis_id | int | Redis 实例的内部唯一标识符 |
+
+**请求体：**
+
+```json
+{
+  "node_type": "cache.m5.large",
+  "num_shards": 2,
+  "status": "available"
+}
+```
+
+| 字段 | 类型 | 必填 | 约束 | 说明 |
+|------|------|------|------|------|
+| cluster_id | string | 否 | 非空，唯一 | Redis 集群标识符 |
+| node_type | string | 否 | 非空 | 节点实例规格 |
+| engine_version | string | 否 | 非空 | Redis 引擎版本号 |
+| status | string | 否 | 枚举：creating/available/deleting/stopped | 实例状态 |
+| endpoint | string | 否 | — | 连接端点地址 |
+| port | int | 否 | 1-65535 | 连接端口 |
+| num_shards | int | 否 | >= 1 | 分片数量 |
+| replicas_per_shard | int | 否 | >= 0 | 每分片副本数 |
+| region | string | 否 | 非空 | 所在区域 |
+
+**成功响应：** `200 OK`
+
+```json
+{
+  "id": 1,
+  "cluster_id": "my-redis-cluster-01",
+  "node_type": "cache.m5.large",
+  "engine_version": "7.0",
+  "status": "available",
+  "endpoint": "my-redis-cluster-01.abc123.0001.use1.cache.amazonaws.com",
+  "port": 6379,
+  "num_shards": 2,
+  "replicas_per_shard": 1,
+  "region": "us-east-1",
+  "created_at": "2026-07-01T10:00:00Z",
+  "updated_at": "2026-07-01T12:00:00Z"
+}
+```
+
+**错误响应：**
+
+- `400 Bad Request` — cluster_id 已存在：`{"code": "DUPLICATE_IDENTIFIER", "message": "cluster_id 'my-redis-cluster-01' already exists"}`
+- `404 Not Found` — Redis 实例不存在：`{"code": "NOT_FOUND", "message": "Redis instance not found"}`
+- `422 Unprocessable Entity` — 请求体校验失败
+
+---
+
+#### 5. DELETE /api/v1/redis/{redis_id}
+
+删除指定 Redis 实例记录。
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| redis_id | int | Redis 实例的内部唯一标识符 |
+
+**成功响应：** `204 No Content`
+
+无响应体。
+
+**错误响应：**
+
+- `404 Not Found` — Redis 实例不存在：`{"code": "NOT_FOUND", "message": "Redis instance not found"}`
+
+---
+
+### Redis 错误码汇总
+
+| 错误码 | HTTP 状态码 | 说明 |
+|--------|-------------|------|
+| `NOT_FOUND` | 404 | Redis 实例不存在 |
+| `DUPLICATE_IDENTIFIER` | 400 | cluster_id 已被占用 |
 | `VALIDATION_ERROR` | 422 | 请求参数或请求体校验失败 |

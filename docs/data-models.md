@@ -31,6 +31,11 @@
 | `RDSUpdate` | 更新 RDS 实例请求体（部分更新） | `app/schemas/rds.py` |
 | `RDSResponse` | 单个 RDS 实例响应 | `app/schemas/rds.py` |
 | `RDSListResponse` | RDS 实例列表分页响应 | `app/schemas/rds.py` |
+| `RedisStatus` | Redis 实例状态枚举 | `app/schemas/redis.py` |
+| `RedisCreate` | 创建 Redis 实例请求体 | `app/schemas/redis.py` |
+| `RedisUpdate` | 更新 Redis 实例请求体（部分更新） | `app/schemas/redis.py` |
+| `RedisResponse` | 单个 Redis 实例响应 | `app/schemas/redis.py` |
+| `RedisListResponse` | Redis 实例列表分页响应 | `app/schemas/redis.py` |
 | `ErrorResponse` | 统一错误响应 | `app/schemas/common.py` |
 | `PaginationParams` | 分页查询参数 | `app/schemas/common.py` |
 
@@ -847,6 +852,189 @@ class RDSListResponse(BaseModel):
 
 ---
 
+## Redis 模型定义
+
+### RedisStatus 枚举
+
+Redis 实例状态枚举值。
+
+| 值 | 说明 |
+|------|------|
+| `creating` | 创建中 |
+| `available` | 可用 |
+| `deleting` | 删除中 |
+| `stopped` | 已停止 |
+
+---
+
+### RedisInstance（内部模型）
+
+Redis 实例的业务实体模型（`app/models/redis.py`），使用内存列表存储，自增 ID。
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| id | int | 自动生成 | 自增 | 内部唯一标识 |
+| cluster_id | str | 是 | — | Redis 集群标识符，唯一 |
+| node_type | str | 是 | — | 节点实例规格 |
+| engine_version | str | 是 | — | Redis 引擎版本号 |
+| status | str | 否 | `"creating"` | 实例状态（RedisStatus 枚举值） |
+| endpoint | str \| None | 否 | None | 连接端点地址 |
+| port | int | 否 | 6379 | 连接端口 |
+| num_shards | int | 否 | 1 | 分片数量 |
+| replicas_per_shard | int | 否 | 0 | 每分片副本数 |
+| region | str | 否 | `"us-east-1"` | 所在区域 |
+| created_at | str | 自动生成 | 当前 UTC 时间 ISO 8601 | 记录创建时间 |
+| updated_at | str | 自动生成 | 当前 UTC 时间 ISO 8601 | 记录更新时间 |
+
+---
+
+### RedisCreate
+
+创建 Redis 实例的请求体。
+
+```python
+from pydantic import BaseModel, Field
+from app.schemas.redis import RedisStatus
+
+
+class RedisCreate(BaseModel):
+    cluster_id: str = Field(..., min_length=1)
+    node_type: str = Field(..., min_length=1)
+    engine_version: str = Field(..., min_length=1)
+    status: RedisStatus = Field(default=RedisStatus.creating)
+    endpoint: str | None = Field(None)
+    port: int = Field(default=6379, gt=0, le=65535)
+    num_shards: int = Field(default=1, ge=1)
+    replicas_per_shard: int = Field(default=0, ge=0)
+    region: str = Field(default="us-east-1", min_length=1)
+```
+
+| 字段 | 类型 | 必填 | 约束 | 默认值 | 示例 |
+|------|------|------|------|--------|------|
+| cluster_id | str | 是 | 非空，唯一 | — | `"my-redis-cluster-01"` |
+| node_type | str | 是 | 非空 | — | `"cache.t3.micro"` |
+| engine_version | str | 是 | 非空 | — | `"7.0"` |
+| status | RedisStatus | 否 | 枚举 | `"creating"` | `"creating"` |
+| endpoint | str \| None | 否 | — | None | `"my-redis-cluster-01.abc123.0001.use1.cache.amazonaws.com"` |
+| port | int | 否 | 1-65535 | 6379 | `6379` |
+| num_shards | int | 否 | >= 1 | 1 | `1` |
+| replicas_per_shard | int | 否 | >= 0 | 0 | `1` |
+| region | str | 否 | 非空 | `"us-east-1"` | `"us-east-1"` |
+
+---
+
+### RedisUpdate
+
+更新 Redis 实例的请求体（部分更新，所有字段可选）。
+
+```python
+class RedisUpdate(BaseModel):
+    cluster_id: str | None = Field(None, min_length=1)
+    node_type: str | None = Field(None, min_length=1)
+    engine_version: str | None = Field(None, min_length=1)
+    status: RedisStatus | None = Field(None)
+    endpoint: str | None = Field(None)
+    port: int | None = Field(None, gt=0, le=65535)
+    num_shards: int | None = Field(None, ge=1)
+    replicas_per_shard: int | None = Field(None, ge=0)
+    region: str | None = Field(None, min_length=1)
+```
+
+| 字段 | 类型 | 必填 | 约束 | 默认值 | 示例 |
+|------|------|------|------|--------|------|
+| cluster_id | str \| None | 否 | 非空，唯一 | None | `"my-redis-cluster-02"` |
+| node_type | str \| None | 否 | 非空 | None | `"cache.m5.large"` |
+| engine_version | str \| None | 否 | 非空 | None | `"7.2"` |
+| status | RedisStatus \| None | 否 | 枚举 | None | `"available"` |
+| endpoint | str \| None | 否 | — | None | `"my-redis-cluster-02.abc123.0001.use1.cache.amazonaws.com"` |
+| port | int \| None | 否 | 1-65535 | None | `6379` |
+| num_shards | int \| None | 否 | >= 1 | None | `2` |
+| replicas_per_shard | int \| None | 否 | >= 0 | None | `2` |
+| region | str \| None | 否 | 非空 | None | `"us-west-2"` |
+
+---
+
+### RedisResponse
+
+单个 Redis 实例的响应体。
+
+```python
+class RedisResponse(BaseModel):
+    id: int
+    cluster_id: str
+    node_type: str
+    engine_version: str
+    status: str
+    endpoint: str | None = None
+    port: int
+    num_shards: int
+    replicas_per_shard: int
+    region: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+```
+
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| id | int | 内部唯一标识（自增） | `1` |
+| cluster_id | str | Redis 集群标识符 | `"my-redis-cluster-01"` |
+| node_type | str | 节点实例规格 | `"cache.t3.micro"` |
+| engine_version | str | Redis 引擎版本号 | `"7.0"` |
+| status | str | 实例状态 | `"available"` |
+| endpoint | str \| None | 连接端点地址 | `"my-redis-cluster-01.abc123.0001.use1.cache.amazonaws.com"` |
+| port | int | 连接端口 | `6379` |
+| num_shards | int | 分片数量 | `1` |
+| replicas_per_shard | int | 每分片副本数 | `1` |
+| region | str | 所在区域 | `"us-east-1"` |
+| created_at | datetime | 记录创建时间（UTC） | `"2026-07-01T10:00:00Z"` |
+| updated_at | datetime | 记录更新时间（UTC） | `"2026-07-01T10:00:00Z"` |
+
+---
+
+### RedisListResponse
+
+Redis 实例列表分页响应。
+
+```python
+class RedisListResponse(BaseModel):
+    items: list[RedisResponse]
+    total: int = Field(..., ge=0)
+    page: int = Field(..., ge=1)
+    size: int = Field(..., ge=1)
+    pages: int = Field(..., ge=0)
+```
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| items | list[RedisResponse] | — | 当前页的 Redis 实例列表 |
+| total | int | >= 0 | 总记录数 |
+| page | int | >= 1 | 当前页码 |
+| size | int | >= 1 | 每页条数 |
+| pages | int | >= 0 | 总页数 |
+
+---
+
+### Redis Schema 字段对比
+
+| 字段 | RedisCreate | RedisUpdate | RedisResponse |
+|------|-------------|-------------|---------------|
+| id | — | — | ✓ |
+| cluster_id | ✓ 必填 | ✓ 可选 | ✓ |
+| node_type | ✓ 必填 | ✓ 可选 | ✓ |
+| engine_version | ✓ 必填 | ✓ 可选 | ✓ |
+| status | ✓ 可选（默认 `creating`） | ✓ 可选 | ✓ |
+| endpoint | ✓ 可选 | ✓ 可选 | ✓ |
+| port | ✓ 可选（默认 `6379`） | ✓ 可选 | ✓ |
+| num_shards | ✓ 可选（默认 `1`） | ✓ 可选 | ✓ |
+| replicas_per_shard | ✓ 可选（默认 `0`） | ✓ 可选 | ✓ |
+| region | ✓ 可选（默认 `us-east-1`） | ✓ 可选 | ✓ |
+| created_at | — | — | ✓ |
+| updated_at | — | — | ✓ |
+
+---
+
 ## 文件组织
 
 ```
@@ -855,6 +1043,7 @@ app/schemas/
 ├── common.py         # ErrorResponse, PaginationParams
 ├── ec2.py            # EC2State, EC2Create, EC2Update, EC2Response, EC2ListResponse
 ├── rds.py            # RDSEngine, RDSStatus, RDSCreate, RDSUpdate, RDSResponse, RDSListResponse
+├── redis.py          # RedisStatus, RedisCreate, RedisUpdate, RedisResponse, RedisListResponse
 ├── todo.py           # TodoCreate, TodoUpdate, TodoResponse, TodoListResponse
 └── user.py           # UserCreate, UserUpdate, UserResponse, UserListResponse
 ```
@@ -865,6 +1054,7 @@ app/schemas/
 from app.schemas.common import ErrorResponse, PaginationParams
 from app.schemas.ec2 import EC2Create, EC2Update, EC2Response, EC2ListResponse, EC2State
 from app.schemas.rds import RDSEngine, RDSStatus, RDSCreate, RDSUpdate, RDSResponse, RDSListResponse
+from app.schemas.redis import RedisStatus, RedisCreate, RedisUpdate, RedisResponse, RedisListResponse
 from app.schemas.todo import TodoCreate, TodoUpdate, TodoResponse, TodoListResponse
 from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
 
@@ -882,6 +1072,11 @@ __all__ = [
     "RDSUpdate",
     "RDSResponse",
     "RDSListResponse",
+    "RedisStatus",
+    "RedisCreate",
+    "RedisUpdate",
+    "RedisResponse",
+    "RedisListResponse",
     "TodoCreate",
     "TodoUpdate",
     "TodoResponse",
