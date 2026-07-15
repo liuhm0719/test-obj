@@ -1,7 +1,5 @@
 import pytest
-from fastapi.testclient import TestClient
 
-from app.main import app
 from app.models import redis as redis_module
 
 BASE_URL = "/api/v1/redis"
@@ -14,11 +12,6 @@ def clear_db():
     yield
     redis_module.redis_db.clear()
     redis_module._next_id = 1
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
 
 
 def _create_redis(client, **overrides):
@@ -139,6 +132,18 @@ class TestListRedis:
         data = resp.json()
         assert data["total"] == 3
         assert len(data["items"]) == 3
+
+    def test_list_redis_invalid_page_zero(self, client):
+        resp = client.get(BASE_URL, params={"page": 0})
+        assert resp.status_code == 422
+
+    def test_list_redis_invalid_size_zero(self, client):
+        resp = client.get(BASE_URL, params={"size": 0})
+        assert resp.status_code == 422
+
+    def test_list_redis_invalid_size_exceeds_max(self, client):
+        resp = client.get(BASE_URL, params={"size": 101})
+        assert resp.status_code == 422
 
 
 # =========================================================================
