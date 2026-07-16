@@ -20,6 +20,10 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.pip-tools]
+generate-hashes = true
+strip-extras = true
+
 [tool.ruff]
 target-version = "py311"
 line-length = 88
