@@ -77,11 +77,54 @@ The API will be available at `http://localhost:8000`. Visit `http://localhost:80
 
 ## Running Tests
 
+The fastest way to run the full test suite:
+
+```bash
+make test
+```
+
+This invokes `pytest` under the hood. You can also call pytest directly:
+
 ```bash
 pytest
 ```
 
-Tests are located in the `tests/` directory and cover all resource routers, health checks, and startup behavior.
+### Running Individual Test Files
+
+```bash
+pytest tests/test_todos.py
+pytest tests/test_ec2.py
+```
+
+### Running a Specific Test Function
+
+```bash
+pytest tests/test_todos.py::test_create_todo
+```
+
+### Test Discovery
+
+Pytest is configured in `pyproject.toml` with:
+
+```toml
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+```
+
+All test files live in the `tests/` directory and follow the `test_*.py` naming convention. Test functions are prefixed with `test_`. Available test modules:
+
+| File | Coverage |
+|------|----------|
+| `tests/test_ec2.py` | EC2 instance CRUD |
+| `tests/test_rds.py` | RDS instance CRUD |
+| `tests/test_redis.py` | Redis instance CRUD |
+| `tests/test_todos.py` | Todo item CRUD |
+| `tests/test_users.py` | User registration and management |
+| `tests/test_projects.py` | Project CRUD |
+| `tests/test_membership.py` | Project membership associations |
+| `tests/test_health.py` | Health check endpoint |
+| `tests/test_startup.py` | Application startup behavior |
+| `tests/conftest.py` | Shared fixtures (FastAPI `TestClient`) |
 
 ## Pre-commit Hooks
 
