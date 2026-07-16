@@ -69,6 +69,21 @@ pytest
 
 Tests are located in the `tests/` directory and cover all resource routers, health checks, and startup behavior.
 
+## Pre-commit Hooks
+
+This project uses [pre-commit](https://pre-commit.com/) to run ruff linting and formatting checks before each commit. The hooks mirror the `[tool.ruff]` configuration in `pyproject.toml`.
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+After installation, ruff will automatically check staged files on every `git commit`. To run the hooks manually against all files:
+
+```bash
+pre-commit run --all-files
+```
+
 ## Project Structure
 
 ```
