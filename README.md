@@ -28,6 +28,20 @@ cd test-obj
 pip install -e '.[dev]'
 ```
 
+## Make Targets
+
+A Makefile wraps common development commands for discoverability:
+
+```bash
+make help      # Show all available targets
+make install   # Install production dependencies
+make dev       # Install dev dependencies and set up pre-commit hooks
+make test      # Run the test suite
+make lint      # Run ruff linter checks
+make format    # Auto-format code with ruff
+make run       # Start the development server
+```
+
 ## Configuration
 
 Copy the example environment file and adjust values as needed:
@@ -93,6 +107,7 @@ app/
 ├── routers/         # API route handlers
 └── schemas/         # Pydantic request/response schemas
 tests/               # Test suite
+Makefile             # Development task runner (make help for targets)
 run.sh               # Server startup script
 pyproject.toml       # Project metadata and dependencies
 .env.example         # Environment variable template
