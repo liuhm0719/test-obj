@@ -5,8 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.models.subnet import (
     create_subnet,
     delete_subnet,
+    delete_subnet_tag,
     get_subnet,
+    get_subnet_tags,
     get_subnets,
+    merge_subnet_tags,
+    replace_subnet_tags,
     update_subnet,
 )
 from app.schemas.common import ErrorResponse, PaginationParams
@@ -15,6 +19,9 @@ from app.schemas.subnet import (
     SubnetListResponse,
     SubnetResponse,
     SubnetUpdate,
+    TagsPatchRequest,
+    TagsPutRequest,
+    TagsResponse,
 )
 
 router = APIRouter(prefix="/subnets", tags=["Subnets"])
@@ -113,6 +120,66 @@ async def update_subnet_endpoint(subnet_id: str, body: SubnetUpdate):
 )
 async def delete_subnet_endpoint(subnet_id: str):
     subnet = delete_subnet(subnet_id)
+    if subnet is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Subnet not found"},
+        )
+    return None
+
+
+@router.get(
+    "/{subnet_id}/tags",
+    response_model=TagsResponse,
+    responses={404: {"model": ErrorResponse}},
+)
+async def get_tags_endpoint(subnet_id: str):
+    tags = get_subnet_tags(subnet_id)
+    if tags is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Subnet not found"},
+        )
+    return TagsResponse(tags=tags)
+
+
+@router.put(
+    "/{subnet_id}/tags",
+    response_model=TagsResponse,
+    responses={404: {"model": ErrorResponse}},
+)
+async def replace_tags_endpoint(subnet_id: str, body: TagsPutRequest):
+    subnet = replace_subnet_tags(subnet_id, body.tags)
+    if subnet is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Subnet not found"},
+        )
+    return TagsResponse(tags=subnet.tags)
+
+
+@router.patch(
+    "/{subnet_id}/tags",
+    response_model=TagsResponse,
+    responses={404: {"model": ErrorResponse}},
+)
+async def merge_tags_endpoint(subnet_id: str, body: TagsPatchRequest):
+    subnet = merge_subnet_tags(subnet_id, body.tags)
+    if subnet is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Subnet not found"},
+        )
+    return TagsResponse(tags=subnet.tags)
+
+
+@router.delete(
+    "/{subnet_id}/tags/{tag_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={404: {"model": ErrorResponse}},
+)
+async def delete_tag_endpoint(subnet_id: str, tag_key: str):
+    subnet = delete_subnet_tag(subnet_id, tag_key)
     if subnet is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

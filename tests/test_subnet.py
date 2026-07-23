@@ -360,3 +360,180 @@ class TestGetSubnetsTagFilter:
     def test_filter_on_empty_db_returns_empty(self):
         result = get_subnets(tag_key="Env", tag_value="prod")
         assert result == []
+
+
+# =========================================================================
+# GET /api/v1/subnets/{subnet_id}/tags - Get Tags
+# =========================================================================
+
+
+class TestGetTags:
+    def test_get_tags_success(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.get(f"{BASE_URL}/{subnet_id}/tags")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["tags"] == {"Env": "prod", "Team": "backend"}
+
+    def test_get_tags_empty(self, client):
+        create_resp = _create_subnet(client, tags={})
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.get(f"{BASE_URL}/{subnet_id}/tags")
+        assert resp.status_code == 200
+        assert resp.json()["tags"] == {}
+
+    def test_get_tags_not_found(self, client):
+        resp = client.get(
+            f"{BASE_URL}/00000000-0000-0000-0000-000000000000/tags"
+        )
+        assert resp.status_code == 404
+        data = resp.json()
+        assert data["code"] == "NOT_FOUND"
+        assert data["message"] == "Subnet not found"
+
+
+# =========================================================================
+# PUT /api/v1/subnets/{subnet_id}/tags - Replace Tags
+# =========================================================================
+
+
+class TestReplaceTags:
+    def test_replace_tags_success(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.put(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {"Team": "frontend", "Version": "v2"}},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["tags"] == {"Team": "frontend", "Version": "v2"}
+
+    def test_replace_tags_replaces_all(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.put(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {"NewKey": "newval"}},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["tags"] == {"NewKey": "newval"}
+
+    def test_replace_tags_not_found(self, client):
+        resp = client.put(
+            f"{BASE_URL}/00000000-0000-0000-0000-000000000000/tags",
+            json={"tags": {"Env": "prod"}},
+        )
+        assert resp.status_code == 404
+        data = resp.json()
+        assert data["code"] == "NOT_FOUND"
+
+    def test_replace_tags_empty_body_422(self, client):
+        create_resp = _create_subnet(client)
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.put(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {}},
+        )
+        assert resp.status_code == 422
+
+
+# =========================================================================
+# PATCH /api/v1/subnets/{subnet_id}/tags - Merge Tags
+# =========================================================================
+
+
+class TestMergeTags:
+    def test_merge_tags_success(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.patch(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {"Team": "frontend", "Version": "v2"}},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["tags"] == {
+            "Env": "prod",
+            "Team": "frontend",
+            "Version": "v2",
+        }
+
+    def test_merge_tags_adds_new_keys(self, client):
+        create_resp = _create_subnet(client, tags={"Env": "prod"})
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.patch(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {"Team": "backend"}},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["tags"] == {"Env": "prod", "Team": "backend"}
+
+    def test_merge_tags_not_found(self, client):
+        resp = client.patch(
+            f"{BASE_URL}/00000000-0000-0000-0000-000000000000/tags",
+            json={"tags": {"Env": "prod"}},
+        )
+        assert resp.status_code == 404
+        data = resp.json()
+        assert data["code"] == "NOT_FOUND"
+
+    def test_merge_tags_empty_body_422(self, client):
+        create_resp = _create_subnet(client)
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.patch(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {}},
+        )
+        assert resp.status_code == 422
+
+
+# =========================================================================
+# DELETE /api/v1/subnets/{subnet_id}/tags/{tag_key} - Delete Tag
+# =========================================================================
+
+
+class TestDeleteTag:
+    def test_delete_tag_success(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.delete(f"{BASE_URL}/{subnet_id}/tags/Env")
+        assert resp.status_code == 204
+
+        get_resp = client.get(f"{BASE_URL}/{subnet_id}/tags")
+        assert get_resp.json()["tags"] == {"Team": "backend"}
+
+    def test_delete_tag_nonexistent_key_returns_204(self, client):
+        create_resp = _create_subnet(client, tags={"Env": "prod"})
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.delete(f"{BASE_URL}/{subnet_id}/tags/NonExistentKey")
+        assert resp.status_code == 204
+
+    def test_delete_tag_subnet_not_found(self, client):
+        resp = client.delete(
+            f"{BASE_URL}/00000000-0000-0000-0000-000000000000/tags/Env"
+        )
+        assert resp.status_code == 404
+        data = resp.json()
+        assert data["code"] == "NOT_FOUND"
+        assert data["message"] == "Subnet not found"
