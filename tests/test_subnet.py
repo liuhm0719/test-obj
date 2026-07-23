@@ -1,3 +1,6 @@
+import csv
+import io
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -802,3 +805,122 @@ class TestListSubnetTagFilter:
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 3
+
+
+# =========================================================================
+# GET /api/v1/subnets/export - Export Subnets as CSV
+# =========================================================================
+
+EXPORT_URL = f"{BASE_URL}/export"
+
+EXPECTED_COLUMNS = [
+    "id", "subnet_id", "name", "vpc_id", "cidr_block", "availability_zone",
+    "state", "region", "map_public_ip_on_launch", "available_ip_count",
+    "tags", "created_at", "updated_at",
+]
+
+
+def _parse_csv(response_text: str) -> list[dict[str, str]]:
+    reader = csv.DictReader(io.StringIO(response_text))
+    return list(reader)
+
+
+class TestExportSubnetsCSV:
+    def test_export_empty_returns_header_only(self, client):
+        resp = client.get(EXPORT_URL)
+        assert resp.status_code == 200
+        rows = _parse_csv(resp.text)
+        assert len(rows) == 0
+        reader = csv.reader(io.StringIO(resp.text))
+        header = next(reader)
+        assert header == EXPECTED_COLUMNS
+
+    def test_export_returns_csv_content_type(self, client):
+        resp = client.get(EXPORT_URL)
+        assert resp.status_code == 200
+        assert "text/csv" in resp.headers["content-type"]
+
+    def test_export_content_disposition(self, client):
+        resp = client.get(EXPORT_URL)
+        assert resp.status_code == 200
+        assert resp.headers["content-disposition"] == "attachment; filename=subnets.csv"
+
+    def test_export_all_columns_present(self, client):
+        _create_subnet(client)
+        resp = client.get(EXPORT_URL)
+        assert resp.status_code == 200
+        reader = csv.reader(io.StringIO(resp.text))
+        header = next(reader)
+        assert header == EXPECTED_COLUMNS
+
+    def test_export_all_records_no_pagination(self, client):
+        for i in range(25):
+            _create_subnet(
+                client, subnet_id=f"subnet-{i:08d}", name=f"subnet-{i}"
+            )
+
+        resp = client.get(EXPORT_URL)
+        assert resp.status_code == 200
+        rows = _parse_csv(resp.text)
+        assert len(rows) == 25
+
+    def test_export_filter_by_tag_key_and_value(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Env": "prod", "Team": "backend"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-002",
+            name="s2",
+            tags={"Env": "dev"},
+        )
+
+        resp = client.get(EXPORT_URL, params={"tag_key": "Env", "tag_value": "prod"})
+        assert resp.status_code == 200
+        rows = _parse_csv(resp.text)
+        assert len(rows) == 1
+        assert rows[0]["subnet_id"] == "subnet-001"
+
+    def test_export_filter_by_tag_key_only(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Env": "prod"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-002",
+            name="s2",
+            tags={"Env": "dev"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-003",
+            name="s3",
+            tags={},
+        )
+
+        resp = client.get(EXPORT_URL, params={"tag_key": "Env"})
+        assert resp.status_code == 200
+        rows = _parse_csv(resp.text)
+        assert len(rows) == 2
+        subnet_ids = {row["subnet_id"] for row in rows}
+        assert subnet_ids == {"subnet-001", "subnet-002"}
+
+    def test_export_tags_serialization(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Z": "last", "A": "first"},
+        )
+
+        resp = client.get(EXPORT_URL)
+        assert resp.status_code == 200
+        rows = _parse_csv(resp.text)
+        assert len(rows) == 1
+        assert rows[0]["tags"] == "A=first;Z=last"
