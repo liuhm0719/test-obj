@@ -1,6 +1,6 @@
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.models.subnet import (
     create_subnet,
@@ -28,8 +28,12 @@ router = APIRouter(prefix="/subnets", tags=["Subnets"])
 
 
 @router.get("", response_model=SubnetListResponse)
-async def list_subnets(pagination: PaginationParams = Depends()):
-    all_subnets = get_subnets()
+async def list_subnets(
+    pagination: PaginationParams = Depends(),
+    tag_key: str | None = Query(None, description="按 tag key 过滤"),
+    tag_value: str | None = Query(None, description="按 tag value 过滤，需与 tag_key 一起使用"),
+):
+    all_subnets = get_subnets(tag_key=tag_key, tag_value=tag_value)
     total = len(all_subnets)
     pages = math.ceil(total / pagination.size) if total > 0 else 0
     start = pagination.offset
