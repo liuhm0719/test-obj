@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SubnetState(str, Enum):
@@ -231,3 +231,41 @@ class SubnetListResponse(BaseModel):
         examples=[1],
         description="总页数",
     )
+
+
+class TagsResponse(BaseModel):
+    tags: dict[str, str] = Field(
+        ...,
+        examples=[{"Environment": "production", "Team": "backend"}],
+        description="标签键值对",
+    )
+
+
+class TagsPutRequest(BaseModel):
+    tags: dict[str, str] = Field(
+        ...,
+        examples=[{"Environment": "production", "Team": "backend"}],
+        description="全量替换的标签键值对，不可为空",
+    )
+
+    @field_validator("tags")
+    @classmethod
+    def tags_must_not_be_empty(cls, v: dict[str, str]) -> dict[str, str]:
+        if len(v) == 0:
+            raise ValueError("tags must contain at least one key-value pair")
+        return v
+
+
+class TagsPatchRequest(BaseModel):
+    tags: dict[str, str] = Field(
+        ...,
+        examples=[{"Environment": "staging"}],
+        description="合并更新的标签键值对，至少包含一个 key",
+    )
+
+    @field_validator("tags")
+    @classmethod
+    def tags_must_not_be_empty(cls, v: dict[str, str]) -> dict[str, str]:
+        if len(v) == 0:
+            raise ValueError("tags must contain at least one key-value pair")
+        return v
