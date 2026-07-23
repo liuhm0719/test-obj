@@ -105,3 +105,37 @@ def update_subnet(
 
 def delete_subnet(subnet_id: str) -> Subnet | None:
     return subnet_db.pop(subnet_id, None)
+
+
+def get_subnet_tags(subnet_id: str) -> dict[str, str] | None:
+    subnet = subnet_db.get(subnet_id)
+    if subnet is None:
+        return None
+    return subnet.tags
+
+
+def replace_subnet_tags(subnet_id: str, tags: dict[str, str]) -> Subnet | None:
+    subnet = subnet_db.get(subnet_id)
+    if subnet is None:
+        return None
+    subnet.tags = tags
+    subnet.updated_at = datetime.now(timezone.utc).isoformat()
+    return subnet
+
+
+def merge_subnet_tags(subnet_id: str, tags: dict[str, str]) -> Subnet | None:
+    subnet = subnet_db.get(subnet_id)
+    if subnet is None:
+        return None
+    subnet.tags.update(tags)
+    subnet.updated_at = datetime.now(timezone.utc).isoformat()
+    return subnet
+
+
+def delete_subnet_tag(subnet_id: str, tag_key: str) -> Subnet | None:
+    subnet = subnet_db.get(subnet_id)
+    if subnet is None:
+        return None
+    subnet.tags.pop(tag_key, None)
+    subnet.updated_at = datetime.now(timezone.utc).isoformat()
+    return subnet
