@@ -1,6 +1,9 @@
+import csv
+import io
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 
 from app.models.subnet import (
     create_subnet,
@@ -45,6 +48,52 @@ async def list_subnets(
         page=pagination.page,
         size=pagination.size,
         pages=pages,
+    )
+
+
+CSV_COLUMNS = [
+    "id", "subnet_id", "name", "vpc_id", "cidr_block", "availability_zone",
+    "state", "region", "map_public_ip_on_launch", "available_ip_count",
+    "tags", "created_at", "updated_at",
+]
+
+
+def _serialize_tags(tags: dict[str, str]) -> str:
+    if not tags:
+        return ""
+    return ";".join(f"{k}={v}" for k, v in sorted(tags.items()))
+
+
+@router.get("/export")
+async def export_subnets_csv(
+    tag_key: str | None = Query(None, description="按 tag key 过滤"),
+    tag_value: str | None = Query(None, description="按 tag value 过滤，需与 tag_key 一起使用"),
+):
+    all_subnets = get_subnets(tag_key=tag_key, tag_value=tag_value)
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=CSV_COLUMNS)
+    writer.writeheader()
+    for subnet in all_subnets:
+        writer.writerow({
+            "id": subnet.id,
+            "subnet_id": subnet.subnet_id,
+            "name": subnet.name,
+            "vpc_id": subnet.vpc_id,
+            "cidr_block": subnet.cidr_block,
+            "availability_zone": subnet.availability_zone,
+            "state": subnet.state,
+            "region": subnet.region,
+            "map_public_ip_on_launch": subnet.map_public_ip_on_launch if subnet.map_public_ip_on_launch is not None else "",
+            "available_ip_count": subnet.available_ip_count if subnet.available_ip_count is not None else "",
+            "tags": _serialize_tags(subnet.tags),
+            "created_at": subnet.created_at,
+            "updated_at": subnet.updated_at,
+        })
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=subnets.csv"},
     )
 
 
