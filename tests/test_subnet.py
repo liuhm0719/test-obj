@@ -1,3 +1,6 @@
+import csv
+import io
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -726,6 +729,126 @@ class TestDeleteSubnetTag:
 # =========================================================================
 # TestListSubnetTagFilter - List Subnets with Tag Filter (API Level)
 # =========================================================================
+
+
+# =========================================================================
+# GET /api/v1/subnets/export - Export Subnets as CSV
+# =========================================================================
+
+
+class TestExportSubnetsCSV:
+    def test_export_empty_returns_header_only(self, client):
+        resp = client.get(f"{BASE_URL}/export")
+        assert resp.status_code == 200
+        assert resp.headers["content-type"].startswith("text/csv")
+        assert 'filename="subnets.csv"' in resp.headers["content-disposition"]
+        reader = csv.reader(io.StringIO(resp.text))
+        rows = list(reader)
+        assert len(rows) == 1
+        assert rows[0] == [
+            "id", "subnet_id", "name", "vpc_id", "cidr_block",
+            "availability_zone", "state", "region", "map_public_ip_on_launch",
+            "available_ip_count", "tags", "created_at", "updated_at",
+        ]
+
+    def test_export_with_data(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Env": "prod", "Team": "backend"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-002",
+            name="s2",
+            tags={"Env": "dev"},
+        )
+
+        resp = client.get(f"{BASE_URL}/export")
+        assert resp.status_code == 200
+        reader = csv.reader(io.StringIO(resp.text))
+        rows = list(reader)
+        assert len(rows) == 3  # header + 2 data rows
+        assert rows[0][0] == "id"
+        assert rows[1][1] == "subnet-001"
+        assert rows[2][1] == "subnet-002"
+
+    def test_export_tags_serialization(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Zulu": "last", "Alpha": "first"},
+        )
+
+        resp = client.get(f"{BASE_URL}/export")
+        reader = csv.reader(io.StringIO(resp.text))
+        rows = list(reader)
+        tags_col_index = rows[0].index("tags")
+        assert rows[1][tags_col_index] == "Alpha=first;Zulu=last"
+
+    def test_export_filter_by_tag_key_and_value(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Env": "prod"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-002",
+            name="s2",
+            tags={"Env": "dev"},
+        )
+
+        resp = client.get(
+            f"{BASE_URL}/export", params={"tag_key": "Env", "tag_value": "prod"}
+        )
+        assert resp.status_code == 200
+        reader = csv.reader(io.StringIO(resp.text))
+        rows = list(reader)
+        assert len(rows) == 2  # header + 1 filtered row
+        assert rows[1][1] == "subnet-001"
+
+    def test_export_filter_by_tag_key_only(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Env": "prod"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-002",
+            name="s2",
+            tags={},
+        )
+
+        resp = client.get(
+            f"{BASE_URL}/export", params={"tag_key": "Env"}
+        )
+        assert resp.status_code == 200
+        reader = csv.reader(io.StringIO(resp.text))
+        rows = list(reader)
+        assert len(rows) == 2  # header + 1 matching row
+        assert rows[1][1] == "subnet-001"
+
+    def test_export_column_count_matches(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            map_public_ip_on_launch=True,
+            available_ip_count=200,
+            tags={"Env": "prod"},
+        )
+
+        resp = client.get(f"{BASE_URL}/export")
+        reader = csv.reader(io.StringIO(resp.text))
+        rows = list(reader)
+        assert len(rows[0]) == 13
+        assert len(rows[1]) == 13
 
 
 class TestListSubnetTagFilter:
