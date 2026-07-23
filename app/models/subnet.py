@@ -62,8 +62,15 @@ def get_subnet(subnet_id: str) -> Subnet | None:
     return subnet_db.get(subnet_id)
 
 
-def get_subnets() -> list[Subnet]:
-    return list(subnet_db.values())
+def get_subnets(
+    tag_key: str | None = None, tag_value: str | None = None
+) -> list[Subnet]:
+    subnets = list(subnet_db.values())
+    if tag_key is not None and tag_value is not None:
+        subnets = [s for s in subnets if s.tags.get(tag_key) == tag_value]
+    elif tag_key is not None:
+        subnets = [s for s in subnets if tag_key in s.tags]
+    return subnets
 
 
 def update_subnet(

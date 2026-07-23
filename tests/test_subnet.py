@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.models.subnet import subnet_db
+from app.models.subnet import create_subnet, get_subnets, subnet_db
 
 BASE_URL = "/api/v1/subnets"
 
@@ -240,3 +240,123 @@ class TestDeleteSubnet:
         assert resp.status_code == 404
         data = resp.json()
         assert data["code"] == "NOT_FOUND"
+
+
+# =========================================================================
+# get_subnets() - Tag Filtering (Data Layer)
+# =========================================================================
+
+
+class TestGetSubnetsTagFilter:
+    def test_no_filter_returns_all(self):
+        create_subnet(
+            subnet_id="subnet-001", name="s1", vpc_id="vpc-1",
+            cidr_block="10.0.1.0/24", availability_zone="us-east-1a",
+            state="available", region="us-east-1",
+            tags={"Env": "prod", "Team": "backend"},
+        )
+        create_subnet(
+            subnet_id="subnet-002", name="s2", vpc_id="vpc-1",
+            cidr_block="10.0.2.0/24", availability_zone="us-east-1b",
+            state="available", region="us-east-1",
+            tags={"Env": "dev"},
+        )
+        result = get_subnets()
+        assert len(result) == 2
+
+    def test_filter_by_tag_key_and_value(self):
+        create_subnet(
+            subnet_id="subnet-001", name="s1", vpc_id="vpc-1",
+            cidr_block="10.0.1.0/24", availability_zone="us-east-1a",
+            state="available", region="us-east-1",
+            tags={"Env": "prod", "Team": "backend"},
+        )
+        create_subnet(
+            subnet_id="subnet-002", name="s2", vpc_id="vpc-1",
+            cidr_block="10.0.2.0/24", availability_zone="us-east-1b",
+            state="available", region="us-east-1",
+            tags={"Env": "dev"},
+        )
+        result = get_subnets(tag_key="Env", tag_value="prod")
+        assert len(result) == 1
+        assert result[0].subnet_id == "subnet-001"
+
+    def test_filter_by_tag_key_only(self):
+        create_subnet(
+            subnet_id="subnet-001", name="s1", vpc_id="vpc-1",
+            cidr_block="10.0.1.0/24", availability_zone="us-east-1a",
+            state="available", region="us-east-1",
+            tags={"Env": "prod", "Team": "backend"},
+        )
+        create_subnet(
+            subnet_id="subnet-002", name="s2", vpc_id="vpc-1",
+            cidr_block="10.0.2.0/24", availability_zone="us-east-1b",
+            state="available", region="us-east-1",
+            tags={"Env": "dev"},
+        )
+        create_subnet(
+            subnet_id="subnet-003", name="s3", vpc_id="vpc-1",
+            cidr_block="10.0.3.0/24", availability_zone="us-east-1c",
+            state="available", region="us-east-1",
+            tags={},
+        )
+        result = get_subnets(tag_key="Env")
+        assert len(result) == 2
+        subnet_ids = {s.subnet_id for s in result}
+        assert subnet_ids == {"subnet-001", "subnet-002"}
+
+    def test_filter_by_tag_key_only_returns_all_values(self):
+        create_subnet(
+            subnet_id="subnet-001", name="s1", vpc_id="vpc-1",
+            cidr_block="10.0.1.0/24", availability_zone="us-east-1a",
+            state="available", region="us-east-1",
+            tags={"Team": "backend"},
+        )
+        create_subnet(
+            subnet_id="subnet-002", name="s2", vpc_id="vpc-1",
+            cidr_block="10.0.2.0/24", availability_zone="us-east-1b",
+            state="available", region="us-east-1",
+            tags={"Team": "frontend"},
+        )
+        result = get_subnets(tag_key="Team")
+        assert len(result) == 2
+
+    def test_tag_value_without_tag_key_is_ignored(self):
+        create_subnet(
+            subnet_id="subnet-001", name="s1", vpc_id="vpc-1",
+            cidr_block="10.0.1.0/24", availability_zone="us-east-1a",
+            state="available", region="us-east-1",
+            tags={"Env": "prod"},
+        )
+        create_subnet(
+            subnet_id="subnet-002", name="s2", vpc_id="vpc-1",
+            cidr_block="10.0.2.0/24", availability_zone="us-east-1b",
+            state="available", region="us-east-1",
+            tags={"Env": "dev"},
+        )
+        result = get_subnets(tag_value="prod")
+        assert len(result) == 2
+
+    def test_filter_no_match_returns_empty(self):
+        create_subnet(
+            subnet_id="subnet-001", name="s1", vpc_id="vpc-1",
+            cidr_block="10.0.1.0/24", availability_zone="us-east-1a",
+            state="available", region="us-east-1",
+            tags={"Env": "prod"},
+        )
+        result = get_subnets(tag_key="NonExistent")
+        assert result == []
+
+    def test_filter_key_value_no_match_returns_empty(self):
+        create_subnet(
+            subnet_id="subnet-001", name="s1", vpc_id="vpc-1",
+            cidr_block="10.0.1.0/24", availability_zone="us-east-1a",
+            state="available", region="us-east-1",
+            tags={"Env": "prod"},
+        )
+        result = get_subnets(tag_key="Env", tag_value="staging")
+        assert result == []
+
+    def test_filter_on_empty_db_returns_empty(self):
+        result = get_subnets(tag_key="Env", tag_value="prod")
+        assert result == []
