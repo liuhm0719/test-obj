@@ -537,3 +537,268 @@ class TestDeleteTag:
         data = resp.json()
         assert data["code"] == "NOT_FOUND"
         assert data["message"] == "Subnet not found"
+
+
+# =========================================================================
+# TestGetSubnetTags - Tags Sub-resource Unit Tests
+# =========================================================================
+
+
+class TestGetSubnetTags:
+    def test_get_empty_tags(self, client):
+        create_resp = _create_subnet(client, tags={})
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.get(f"{BASE_URL}/{subnet_id}/tags")
+        assert resp.status_code == 200
+        assert resp.json()["tags"] == {}
+
+    def test_get_tags_with_data(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.get(f"{BASE_URL}/{subnet_id}/tags")
+        assert resp.status_code == 200
+        assert resp.json()["tags"] == {"Env": "prod", "Team": "backend"}
+
+    def test_get_tags_subnet_not_found(self, client):
+        resp = client.get(
+            f"{BASE_URL}/00000000-0000-0000-0000-000000000000/tags"
+        )
+        assert resp.status_code == 404
+        assert resp.json()["code"] == "NOT_FOUND"
+
+
+# =========================================================================
+# TestReplaceSubnetTags - PUT Tags Sub-resource Unit Tests
+# =========================================================================
+
+
+class TestReplaceSubnetTags:
+    def test_put_replaces_tags(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.put(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {"Version": "v2"}},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["tags"] == {"Version": "v2"}
+
+    def test_put_old_tags_disappear(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        client.put(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {"NewKey": "newval"}},
+        )
+
+        resp = client.get(f"{BASE_URL}/{subnet_id}/tags")
+        assert "Env" not in resp.json()["tags"]
+        assert "Team" not in resp.json()["tags"]
+        assert resp.json()["tags"] == {"NewKey": "newval"}
+
+    def test_put_empty_dict_returns_422(self, client):
+        create_resp = _create_subnet(client)
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.put(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {}},
+        )
+        assert resp.status_code == 422
+
+    def test_put_subnet_not_found(self, client):
+        resp = client.put(
+            f"{BASE_URL}/00000000-0000-0000-0000-000000000000/tags",
+            json={"tags": {"Env": "prod"}},
+        )
+        assert resp.status_code == 404
+        assert resp.json()["code"] == "NOT_FOUND"
+
+
+# =========================================================================
+# TestMergeSubnetTags - PATCH Tags Sub-resource Unit Tests
+# =========================================================================
+
+
+class TestMergeSubnetTags:
+    def test_patch_adds_new_tag(self, client):
+        create_resp = _create_subnet(client, tags={"Env": "prod"})
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.patch(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {"Team": "backend"}},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["tags"] == {"Env": "prod", "Team": "backend"}
+
+    def test_patch_overwrites_existing_key(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.patch(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {"Env": "staging"}},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["tags"]["Env"] == "staging"
+
+    def test_patch_does_not_affect_unspecified_keys(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend", "Version": "v1"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.patch(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {"Env": "staging"}},
+        )
+        assert resp.status_code == 200
+        tags = resp.json()["tags"]
+        assert tags["Team"] == "backend"
+        assert tags["Version"] == "v1"
+
+    def test_patch_empty_dict_returns_422(self, client):
+        create_resp = _create_subnet(client)
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.patch(
+            f"{BASE_URL}/{subnet_id}/tags",
+            json={"tags": {}},
+        )
+        assert resp.status_code == 422
+
+    def test_patch_subnet_not_found(self, client):
+        resp = client.patch(
+            f"{BASE_URL}/00000000-0000-0000-0000-000000000000/tags",
+            json={"tags": {"Env": "prod"}},
+        )
+        assert resp.status_code == 404
+        assert resp.json()["code"] == "NOT_FOUND"
+
+
+# =========================================================================
+# TestDeleteSubnetTag - DELETE Tags Sub-resource Unit Tests
+# =========================================================================
+
+
+class TestDeleteSubnetTag:
+    def test_delete_existing_tag_key_returns_204(self, client):
+        create_resp = _create_subnet(
+            client, tags={"Env": "prod", "Team": "backend"}
+        )
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.delete(f"{BASE_URL}/{subnet_id}/tags/Env")
+        assert resp.status_code == 204
+
+        get_resp = client.get(f"{BASE_URL}/{subnet_id}/tags")
+        assert "Env" not in get_resp.json()["tags"]
+        assert get_resp.json()["tags"] == {"Team": "backend"}
+
+    def test_delete_nonexistent_tag_key_returns_204(self, client):
+        create_resp = _create_subnet(client, tags={"Env": "prod"})
+        subnet_id = create_resp.json()["id"]
+
+        resp = client.delete(f"{BASE_URL}/{subnet_id}/tags/NoSuchKey")
+        assert resp.status_code == 204
+
+    def test_delete_tag_subnet_not_found_returns_404(self, client):
+        resp = client.delete(
+            f"{BASE_URL}/00000000-0000-0000-0000-000000000000/tags/Env"
+        )
+        assert resp.status_code == 404
+        assert resp.json()["code"] == "NOT_FOUND"
+
+
+# =========================================================================
+# TestListSubnetTagFilter - List Subnets with Tag Filter (API Level)
+# =========================================================================
+
+
+class TestListSubnetTagFilter:
+    def test_filter_by_tag_key_and_value(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Env": "prod", "Team": "backend"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-002",
+            name="s2",
+            tags={"Env": "dev"},
+        )
+
+        resp = client.get(
+            BASE_URL, params={"tag_key": "Env", "tag_value": "prod"}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["items"][0]["subnet_id"] == "subnet-001"
+
+    def test_filter_by_tag_key_only(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Env": "prod"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-002",
+            name="s2",
+            tags={"Env": "dev"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-003",
+            name="s3",
+            tags={},
+        )
+
+        resp = client.get(BASE_URL, params={"tag_key": "Env"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 2
+        subnet_ids = {item["subnet_id"] for item in data["items"]}
+        assert subnet_ids == {"subnet-001", "subnet-002"}
+
+    def test_no_tag_params_returns_all(self, client):
+        _create_subnet(
+            client,
+            subnet_id="subnet-001",
+            name="s1",
+            tags={"Env": "prod"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-002",
+            name="s2",
+            tags={"Env": "dev"},
+        )
+        _create_subnet(
+            client,
+            subnet_id="subnet-003",
+            name="s3",
+            tags={},
+        )
+
+        resp = client.get(BASE_URL)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 3
