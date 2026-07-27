@@ -16,6 +16,7 @@ class RDSInstance(BaseModel):
     master_username: str
     multi_az: bool = False
     region: str = "us-east-1"
+    project_id: str | None = None
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
