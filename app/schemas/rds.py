@@ -83,6 +83,11 @@ class RDSCreate(BaseModel):
         examples=["us-east-1"],
         description="所在区域",
     )
+    project_id: str | None = Field(
+        None,
+        examples=["proj-abc123"],
+        description="所属项目 ID",
+    )
 
 
 class RDSUpdate(BaseModel):
@@ -149,6 +154,11 @@ class RDSUpdate(BaseModel):
         examples=["us-west-2"],
         description="所在区域",
     )
+    project_id: str | None = Field(
+        None,
+        examples=["proj-abc123"],
+        description="所属项目 ID",
+    )
 
 
 class RDSResponse(BaseModel):
@@ -211,6 +221,11 @@ class RDSResponse(BaseModel):
         ...,
         examples=["us-east-1"],
         description="所在区域",
+    )
+    project_id: str | None = Field(
+        None,
+        examples=["proj-abc123"],
+        description="所属项目 ID",
     )
     created_at: datetime = Field(
         ...,
