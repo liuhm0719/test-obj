@@ -1,6 +1,9 @@
+import csv
+import io
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 
 from app.models.subnet import (
     create_subnet,
@@ -25,6 +28,46 @@ from app.schemas.subnet import (
 )
 
 router = APIRouter(prefix="/subnets", tags=["Subnets"])
+
+
+@router.get("/export", response_class=StreamingResponse)
+async def export_subnets_csv(
+    tag_key: str | None = Query(None, description="按 tag key 过滤"),
+    tag_value: str | None = Query(None, description="按 tag value 过滤，需与 tag_key 一起使用"),
+):
+    subnets = get_subnets(tag_key=tag_key, tag_value=tag_value)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    columns = [
+        "id", "subnet_id", "name", "vpc_id", "cidr_block",
+        "availability_zone", "state", "region", "map_public_ip_on_launch",
+        "available_ip_count", "tags", "created_at", "updated_at",
+    ]
+    writer.writerow(columns)
+    for subnet in subnets:
+        tags_str = ";".join(
+            f"{k}={v}" for k, v in sorted(subnet.tags.items())
+        )
+        writer.writerow([
+            subnet.id,
+            subnet.subnet_id,
+            subnet.name,
+            subnet.vpc_id,
+            subnet.cidr_block,
+            subnet.availability_zone,
+            subnet.state,
+            subnet.region,
+            subnet.map_public_ip_on_launch,
+            subnet.available_ip_count,
+            tags_str,
+            subnet.created_at,
+            subnet.updated_at,
+        ])
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="subnets.csv"'},
+    )
 
 
 @router.get("", response_model=SubnetListResponse)
