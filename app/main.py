@@ -3,6 +3,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 
 from app.routers.ec2 import router as ec2_router
+from app.routers.health import router as health_router
 from app.routers.projects import router as projects_router
 from app.routers.rds import router as rds_router
 from app.routers.redis import router as redis_router
@@ -12,6 +13,7 @@ from app.routers.users import router as users_router
 
 app = FastAPI(title="FastAPI Example", version="0.1.0")
 
+app.include_router(health_router)
 app.include_router(todos_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(ec2_router, prefix="/api/v1")
@@ -32,8 +34,3 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
         status_code=exc.status_code,
         content={"code": "ERROR", "message": str(exc.detail)},
     )
-
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
