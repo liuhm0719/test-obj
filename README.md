@@ -50,3 +50,7 @@ pytest
 ```
 
 The interactive API documentation is available at `/docs` (Swagger UI) and `/redoc` (ReDoc) when the server is running.
+
+## License
+
+This project is licensed under the MIT License.
