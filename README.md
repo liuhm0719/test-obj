@@ -50,3 +50,7 @@ pytest
 ```
 
 The interactive API documentation is available at `/docs` (Swagger UI) and `/redoc` (ReDoc) when the server is running.
+
+## Contributing
+
+Contributions are welcome — whether you are fixing a bug, adding a feature, or improving the docs. This project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification for all commit messages, and uses [Ruff](https://docs.astral.sh/ruff/) for linting and formatting. For the full contribution workflow (fork → branch → PR), please read [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and feature requests should be filed through the GitHub Issue templates provided in this repository.
