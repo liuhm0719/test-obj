@@ -19,7 +19,6 @@ from app.schemas.subnet import (
     SubnetResponse,
     SubnetUpdate,
 )
-from app.schemas.todo import TodoCreate, TodoListResponse, TodoResponse, TodoUpdate
 from app.schemas.user import UserCreate, UserListResponse, UserResponse, UserUpdate
 
 __all__ = [
@@ -45,10 +44,6 @@ __all__ = [
     "SubnetUpdate",
     "SubnetResponse",
     "SubnetListResponse",
-    "TodoCreate",
-    "TodoUpdate",
-    "TodoResponse",
-    "TodoListResponse",
     "UserCreate",
     "UserUpdate",
     "UserResponse",
