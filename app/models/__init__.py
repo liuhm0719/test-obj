@@ -13,7 +13,6 @@ from app.models.membership import (
 from app.models.project import Project, projects_db
 from app.models.rds import RDSInstance, rds_db
 from app.models.subnet import Subnet, subnet_db
-from app.models.todo import Todo, todos_db
 from app.models.user import User, users_db
 
 __all__ = [
@@ -33,8 +32,6 @@ __all__ = [
     "rds_db",
     "Subnet",
     "subnet_db",
-    "Todo",
-    "todos_db",
     "User",
     "users_db",
 ]
