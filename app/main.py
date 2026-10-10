@@ -7,12 +7,10 @@ from app.routers.projects import router as projects_router
 from app.routers.rds import router as rds_router
 from app.routers.redis import router as redis_router
 from app.routers.subnet import router as subnet_router
-from app.routers.todos import router as todos_router
 from app.routers.users import router as users_router
 
 app = FastAPI(title="FastAPI Example", version="0.1.0")
 
-app.include_router(todos_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(ec2_router, prefix="/api/v1")
 app.include_router(rds_router, prefix="/api/v1")
