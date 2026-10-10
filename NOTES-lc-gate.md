@@ -1,0 +1,1 @@
+LC gate A-4 regression note 2026-09-24
