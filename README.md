@@ -49,4 +49,13 @@ pip install -e ".[dev]"
 pytest
 ```
 
+Once the server is running, create your first todo:
+
+```bash
+# Create a todo
+curl -s -X POST http://localhost:8000/api/v1/todos \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "Hello world"}'
+```
+
 The interactive API documentation is available at `/docs` (Swagger UI) and `/redoc` (ReDoc) when the server is running.
