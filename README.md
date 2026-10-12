@@ -50,3 +50,7 @@ pytest
 ```
 
 The interactive API documentation is available at `/docs` (Swagger UI) and `/redoc` (ReDoc) when the server is running.
+
+## Changelog
+
+The changelog is maintained in CHANGELOG.md.
