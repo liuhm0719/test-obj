@@ -50,3 +50,4 @@ pytest
 ```
 
 The interactive API documentation is available at `/docs` (Swagger UI) and `/redoc` (ReDoc) when the server is running.
+LC gate A-4 regression note 2026-09-24
