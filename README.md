@@ -50,3 +50,5 @@ pytest
 ```
 
 The interactive API documentation is available at `/docs` (Swagger UI) and `/redoc` (ReDoc) when the server is running.
+
+GW-11 B-group race-injection regression 2026-09-16
