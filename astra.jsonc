@@ -1,0 +1,32 @@
+// managed-by: devbox-gateway version=1
+{
+  "apiVersion": "astra/v1",
+  "kind": "Application",
+  "metadata": {
+    "name": "l2-init-test"
+  },
+  "spec": {
+    "components": [
+      {
+        "name": "app",
+        "type": "docker",
+        "source": ".",
+        "runtime": {
+          "dockerfile": "Dockerfile"
+        },
+        "health": {
+          "http": {
+            "port": 8080,
+            "path": ""
+          }
+        }
+      }
+    ],
+    "environments": {
+      "staging": {
+        "target": "k3s",
+        "vars": {}
+      }
+    }
+  }
+}
