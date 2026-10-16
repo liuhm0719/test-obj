@@ -1,5 +1,7 @@
 # FastAPI Example
 
+[![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-%3E%3D0.110-009688?logo=fastapi)](https://fastapi.tiangolo.com/) [![Linting](https://img.shields.io/badge/linting-ruff-261230?logo=ruff)](https://docs.astral.sh/ruff/) [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 A RESTful API service built with FastAPI for managing cloud infrastructure resources and application entities. The project provides CRUD endpoints for AWS-style resources (EC2 instances, RDS databases, Redis clusters, Subnets) alongside application-level entities (Projects, Users, Todos), with in-memory storage for rapid prototyping and testing.
 
 ## Features
